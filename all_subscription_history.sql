@@ -1,46 +1,61 @@
+-- Drop the existing view if it exists
+DROP VIEW IF EXISTS `all_stripe.subscription_history`;
+
+-- Create the view
+CREATE VIEW `all_stripe.subscription_history` AS
+
 WITH
--- 1) Gather all "active" subscription slices across sg/hk/jp
-sub_active_slices AS (
+-- 1) Gather slices from all regions, capturing _fivetran_start, _fivetran_end, and ended_at
+all_sub_slices AS (
+	SELECT
+		'sg' AS region,
+		id AS subscription_id,
+		customer_id,
+		status,
+		CAST(_fivetran_start AS DATE) AS scd_start,
+		CAST(_fivetran_end AS DATE) AS scd_end,
+		CAST(ended_at AS DATE) AS ended_at
+    FROM `sg_stripe.subscription_history`
+
+    UNION ALL
+
     SELECT
-      DISTINCT id AS subscription_id,
-      customer_id,
-      status,
-      CAST(_fivetran_start AS DATE) AS valid_start,
-      CAST(_fivetran_end AS DATE) AS valid_end
-    FROM (
-      SELECT
-        id,
-        customer_id,
-        status,
-        _fivetran_start,
-        _fivetran_end
-      FROM `sg_stripe.subscription_history`
-      WHERE
-        status = 'active'
-      UNION ALL
-      SELECT
-        id,
-        customer_id,
-        status,
-        _fivetran_start,
-        _fivetran_end
-      FROM `hk_stripe.subscription_history`
-      WHERE
-        status = 'active'
-      UNION ALL
-      SELECT
-        id,
-        customer_id,
-        status,
-        _fivetran_start,
-        _fivetran_end
-      FROM `jp_stripe.subscription_history`
-      WHERE
-        status = 'active' 
-    ) 
+		'hk' AS region,
+		id AS subscription_id,
+		customer_id,
+		status,
+		CAST(_fivetran_start AS DATE) AS scd_start,
+		CAST(_fivetran_end AS DATE) AS scd_end,
+		CAST(ended_at AS DATE) AS ended_at
+    FROM `hk_stripe.subscription_history`
+
+    UNION ALL
+
+    SELECT
+		'jp' AS region,
+		id AS subscription_id,
+		customer_id,
+		status,
+		CAST(_fivetran_start AS DATE) AS scd_start,
+		CAST(_fivetran_end AS DATE) AS scd_end,
+		CAST(ended_at AS DATE) AS ended_at
+    FROM `jp_stripe.subscription_history`
+),
+
+-- 2) Define the *actual* active window by combining ended_at with the SCD start/end
+sub_active_slices AS (
+	SELECT DISTINCT 
+		region,
+		subscription_id,
+		customer_id,
+		status,
+		scd_start AS valid_start,
+		COALESCE(ended_at, scd_end) AS valid_end
+	FROM all_sub_slices
+	WHERE status = 'active'
   ),
   
--- 2) Calculate "MRR" per subscription by joining subscription_items to plan, grouping by (subscription_id, currency)
+-- 3) Calculate "MRR" per subscription by joining subscription_items to plan, grouping by (subscription_id, currency)
 sub_mrr AS (
     SELECT
         si.subscription_id,
@@ -98,8 +113,8 @@ sub_mrr AS (
             currency
         FROM `hk_stripe.plan` AS h
         UNION ALL
-        SELECT
-            id AS plan_id,
+		SELECT
+			id AS plan_id,
             amount,
             j.interval,
             interval_count,
@@ -113,10 +128,11 @@ sub_mrr AS (
     pl.currency 
 ),
 
--- 3) Attach the MRR + currency to each active slice
+-- 4) Attach the MRR + currency to each active slice
 active_slices_with_mrr AS (
     SELECT
-        sas.subscription_id,
+    	sas.region,    
+		sas.subscription_id,
         sas.customer_id,
         sas.status,
         sas.valid_start,
@@ -130,33 +146,35 @@ active_slices_with_mrr AS (
         ON sas.subscription_id = sm.subscription_id 
 ),
 
--- 4) Build a monthly calendar from 2024-01-01 to current date
+-- 4) Build a monthly calendar from 2021-01-01 to current date
 monthly_calendar AS (
     
     SELECT
         month_start
-    FROM UNNEST( GENERATE_DATE_ARRAY( DATE '2024-01-01', CURRENT_DATE(), INTERVAL 1 MONTH)) AS month_start
+    FROM UNNEST( GENERATE_DATE_ARRAY( DATE '2021-01-01', CURRENT_DATE(), INTERVAL 1 MONTH)) AS month_start
 )
 
 -- 5) Final output
 SELECT
-  aswm.subscription_id,
-  aswm.customer_id,
-  mc.month_start,
-  -- boolean to indicate whether subscription was active in a given observation month
-  (aswm.valid_start <= LAST_DAY(mc.month_start) AND aswm.valid_end >= mc.month_start) AS was_active_flag,
-  -- If subscription was active, return MRR; else 0
-  CASE 
-    WHEN aswm.valid_start <= LAST_DAY(mc.month_start) AND aswm.valid_end >= mc.month_start THEN aswm.mrr
-    ELSE 0 
-    END AS monthly_recurring_revenue,
-  aswm.currency
-FROM active_slices_with_mrr aswm
-CROSS JOIN monthly_calendar mc
+	aswm.region,
+	aswm.subscription_id,
+	aswm.customer_id,
+	mc.month_start,
+	-- boolean to indicate whether subscription was active in a given observation month
+	(aswm.valid_start <= LAST_DAY(mc.month_start) AND aswm.valid_end >= mc.month_start) AS was_active_flag,
+	-- If subscription was active, return MRR; else 0
+	CASE 
+	    WHEN aswm.valid_start <= LAST_DAY(mc.month_start) AND aswm.valid_end >= mc.month_start THEN aswm.mrr
+	    ELSE 0 
+	    END AS monthly_recurring_revenue,
+	aswm.currency
+FROM active_slices_with_mrr AS aswm
+CROSS JOIN monthly_calendar AS mc
 GROUP BY
-  aswm.subscription_id,
-  aswm.customer_id,
-  month_start,
-  was_active_flag,
-  monthly_recurring_revenue,
-  aswm.currency
+	aswm.region,  
+	aswm.subscription_id,
+	aswm.customer_id,
+	month_start,
+	was_active_flag,
+	monthly_recurring_revenue,
+	aswm.currency
