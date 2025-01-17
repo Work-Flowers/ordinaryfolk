@@ -43,9 +43,9 @@ df_cust_classified <- df_customers |>
     status = case_when(
       month_start == created_at ~ "new",
       monthly_recurring_revenue == 0 & lag(monthly_recurring_revenue, 1) > 0 ~ "churned",
+      monthly_recurring_revenue > 0 & month_start > created_at & lag(monthly_recurring_revenue, 1) == 0 ~ "reactivated",
       monthly_recurring_revenue > lag(monthly_recurring_revenue, 1) ~ "mrr expansion",
       monthly_recurring_revenue < lag(monthly_recurring_revenue, 1) ~ "mrr contraction",
-      monthly_recurring_revenue > 0 & month_start > created_at & is.na(lag(monthly_recurring_revenue, 1)) ~ "resurrected",
       monthly_recurring_revenue > 0  ~ "mrr flat"
       ),
     mrr_delta = monthly_recurring_revenue - coalesce(lag(monthly_recurring_revenue, 1), 0)
@@ -61,7 +61,7 @@ df_cust_summary <- df_cust_classified |>
     across(mrr_delta, sum),
     .groups = "drop"
   ) |> 
-  mutate(across(status, ~fct_relevel(., "new", "mrr expansion", "mrr contraction", "mrr flat")))
+  mutate(across(status, ~fct_relevel(., "new", "reactivated", "mrr expansion", "mrr contraction", "mrr flat")))
 
 df_total_actives <- df_cust_classified |> 
   filter(monthly_recurring_revenue > 0) |> 
@@ -100,7 +100,7 @@ df_churn <- df_cust_summary |>
     labs(
       y = "No. of Customers",
       x = NULL,
-      fill = "Customer Status",
+      fill = "Customer Type",
       title = "No.of Active Customers by Status",
       subtitle = "Source: Stripe"
     )
