@@ -108,8 +108,6 @@ sub_mrr AS (
     ) AS  pl
   ON
     si.plan_id = pl.plan_id
-  WHERE
-    pl.interval = 'month'
   GROUP BY
     si.subscription_id,
     pl.currency 
