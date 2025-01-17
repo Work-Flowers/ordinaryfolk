@@ -156,17 +156,17 @@ monthly_calendar AS (
 )
 
 -- 5) Final output
-SELECT DISTINCT
+SELECT 
 	aswm.region,
 	aswm.subscription_id,
 	aswm.customer_id,
 	mc.month_start,
 	aswm.created_at,
 	aswm.ended_at,
+	aswm.currency,
 	-- If subscription was active, return MRR; else 0
-	aswm.mrr AS monthly_recurring_revenue,
-	aswm.currency
+	CASE WHEN aswm.ended_at >= mc.month_start THEN aswm.mrr ELSE 0 END AS monthly_recurring_revenue
 FROM active_slices_with_mrr AS aswm
 LEFT JOIN monthly_calendar AS mc
 	ON aswm.created_at <= LAST_DAY(mc.month_start)
-	AND aswm.ended_at >= mc.month_start
+	AND aswm.ended_at >= DATE_ADD(mc.month_start, INTERVAL -1 MONTH)
