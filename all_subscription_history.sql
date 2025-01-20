@@ -152,21 +152,68 @@ active_slices_with_mrr AS (
 	
 ),
 
--- 4) Build a monthly calendar from 2023-01-01 to current date
+-- 4) Build a monthly calendar from 2020-01-01 to current date
 monthly_calendar AS (
     SELECT
         month_start
     FROM UNNEST( GENERATE_DATE_ARRAY( DATE '2020-08-01', CURRENT_DATE(), INTERVAL 1 MONTH)) AS month_start
-)
+),
 
--- 5) Final output
+-- 5) find the last successful charge date for canceled subscriptions
+last_payment AS (
+	
+	SELECT
+		sh.id AS subscription_id,
+		MAX(DATE_TRUNC(ch.created, month)) AS last_paid
+	FROM sg_stripe.subscription_history AS sh
+	INNER JOIN sg_stripe.invoice AS inv
+		ON sh.id = inv.subscription_id
+	INNER JOIN sg_stripe.charge AS ch
+		ON inv.id = ch.invoice_id
+		AND ch.status = 'succeeded'
+	WHERE
+		1 = 1
+		AND sh.status = 'canceled'
+	GROUP BY 1
+	UNION ALL
+	SELECT
+		sh.id AS subscription_id,
+		MAX(DATE_TRUNC(ch.created, month)) AS last_paid
+	FROM hk_stripe.subscription_history AS sh
+	INNER JOIN hk_stripe.invoice AS inv
+		ON sh.id = inv.subscription_id
+	INNER JOIN hk_stripe.charge AS ch
+		ON inv.id = ch.invoice_id
+		AND ch.status = 'succeeded'
+	WHERE
+		1 = 1
+		AND sh.status = 'canceled'
+	GROUP BY 1
+	UNION ALL
+		SELECT
+		sh.id AS subscription_id,
+		MAX(DATE_TRUNC(ch.created, month)) AS last_paid
+	FROM jp_stripe.subscription_history AS sh
+	INNER JOIN jp_stripe.invoice AS inv
+		ON sh.id = inv.subscription_id
+	INNER JOIN jp_stripe.charge AS ch
+		ON inv.id = ch.invoice_id
+		AND ch.status = 'succeeded'
+	WHERE
+		1 = 1
+		AND sh.status = 'canceled'
+	GROUP BY 1
+
+),
+
+-- 6) Final output
 SELECT 
 	aswm.region,
 	aswm.subscription_id,
 	aswm.customer_id,
 	mc.month_start,
 	aswm.created_at,
-	aswm.ended_at,
+	COALESCE(lp.last_paid, aswm.ended_at) AS ended_at,
 	aswm.currency,
 	-- If subscription was active, return MRR; else 0
 	CASE WHEN aswm.ended_at >= mc.month_start THEN aswm.mrr_local ELSE 0 END AS mrr_local,
@@ -174,4 +221,6 @@ SELECT
 FROM active_slices_with_mrr AS aswm
 LEFT JOIN monthly_calendar AS mc
 	ON aswm.created_at <= LAST_DAY(mc.month_start)
-	AND aswm.ended_at >= DATE_ADD(mc.month_start, INTERVAL -1 MONTH)
+	AND aswm.ended_at >= DATE_ADD(COALESCE(lp.last_paid, aswm.ended_at), INTERVAL -1 MONTH)
+LEFT JOIN last_payment AS lp
+	ON aswm.subscription_id = lp.subscription_id
