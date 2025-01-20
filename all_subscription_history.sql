@@ -139,20 +139,24 @@ active_slices_with_mrr AS (
         sas.status,
         sas.created_at,
 		sas.ended_at,
-        COALESCE(sm.subscription_mrr, 0) AS mrr,
+        COALESCE(sm.subscription_mrr, 0) AS mrr_local,
+		COALESCE(sm.subscription_mrr, 0) / fx.fx_to_usd AS mrr_usd,
         -- If a subscription has items in multiple currencies, this approach only captures one currency row at a time.
         -- If that scenario occurs, you may get multiple rows per subscription_id for different currencies.
         sm.currency
     FROM sub_active_slices AS sas
     LEFT JOIN sub_mrr AS sm
         ON sas.subscription_id = sm.subscription_id 
+	LEFT JOIN ref.fx_rates AS fx
+		ON sm.currency = fx.currency
+	
 ),
 
 -- 4) Build a monthly calendar from 2023-01-01 to current date
 monthly_calendar AS (
     SELECT
         month_start
-    FROM UNNEST( GENERATE_DATE_ARRAY( DATE '2023-01-01', CURRENT_DATE(), INTERVAL 1 MONTH)) AS month_start
+    FROM UNNEST( GENERATE_DATE_ARRAY( DATE '2020-08-01', CURRENT_DATE(), INTERVAL 1 MONTH)) AS month_start
 )
 
 -- 5) Final output
@@ -165,7 +169,8 @@ SELECT
 	aswm.ended_at,
 	aswm.currency,
 	-- If subscription was active, return MRR; else 0
-	CASE WHEN aswm.ended_at >= mc.month_start THEN aswm.mrr ELSE 0 END AS monthly_recurring_revenue
+	CASE WHEN aswm.ended_at >= mc.month_start THEN aswm.mrr_local ELSE 0 END AS mrr_local,
+	CASE WHEN aswm.ended_at >= mc.month_start THEN aswm.mrr_usd ELSE 0 END AS mrr_usd
 FROM active_slices_with_mrr AS aswm
 LEFT JOIN monthly_calendar AS mc
 	ON aswm.created_at <= LAST_DAY(mc.month_start)
