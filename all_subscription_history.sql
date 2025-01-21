@@ -86,23 +86,23 @@ active_slices_with_mrr AS (
 ),
 
 -- 4) Build a monthly calendar from 2020-08-01 to current date
-monthly_calendar AS (
+calendar AS (
 	SELECT
-		month_start
+		obs_date
 	FROM UNNEST(
 		GENERATE_DATE_ARRAY(
 			DATE '2020-08-01',
 		CURRENT_DATE(),
-		INTERVAL 1 MONTH
+		INTERVAL 1 DAY
 		)
-	) AS month_start
+	) AS obs_date
 ),
 
 -- 5) Last successful charge date for canceled subscriptions
 last_payment AS (
 	SELECT
 		sas.subscription_id,
-		CAST(MAX(DATE_TRUNC(c.created, MONTH)) AS DATE) AS last_paid
+		CAST(MAX(c.created) AS DATE) AS last_paid
 	FROM sub_active_slices AS sas
 	JOIN all_stripe.invoice AS i
 		ON sas.subscription_id = i.subscription_id 
@@ -117,8 +117,10 @@ SELECT
 	aswm.region,
 	aswm.subscription_id,
 	aswm.customer_id,
-	mc.month_start,
+	cal.obs_date,
 	aswm.created_at,
+	-- for subs that have been canceled, take the date of the last successful payment as the ended_at date
+	-- smooths out cliff caused by one-time cancellation of large number of past-due subs in Jul-24
 	COALESCE(lp.last_paid, aswm.ended_at) AS ended_at,
 	aswm.currency,
 	aswm.plan_id,
@@ -128,20 +130,12 @@ SELECT
 	aswm.product_name,
 	aswm.n_boxes,
 	aswm.condition,
-	-- If subscription was active, return MRR; else 0
-	CASE
-		WHEN aswm.ended_at >= mc.month_start THEN aswm.mrr_local
-		ELSE 0
-		END AS mrr_local,
-	CASE
-		WHEN COALESCE(lp.last_paid, aswm.ended_at) >= mc.month_start THEN aswm.mrr_usd
-		ELSE 0
-		END AS mrr_usd
+	aswm.mrr_local,
+	aswm.mrr_usd
 FROM active_slices_with_mrr AS aswm
 LEFT JOIN last_payment AS lp
 	ON aswm.subscription_id = lp.subscription_id
 	AND aswm.status = 'canceled'
-LEFT JOIN monthly_calendar AS mc
-	ON aswm.created_at <= LAST_DAY(mc.month_start)
-	AND COALESCE(lp.last_paid, aswm.ended_at) >= DATE_ADD(mc.month_start, INTERVAL -1 MONTH)
-
+INNER JOIN calendar AS cal
+	ON aswm.created_at <= cal.obs_date
+	AND COALESCE(lp.last_paid, aswm.ended_at) >= cal.obs_date
