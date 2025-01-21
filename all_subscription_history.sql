@@ -37,19 +37,18 @@ sub_mrr AS (
 	SELECT
 		si.subscription_id,
 		pl.currency,
-		SUM(
-			CASE 
-				WHEN pl.interval = 'month' THEN pl.amount * si.quantity / 100 / COALESCE(pl.interval_count, 1)
-				WHEN pl.interval = 'year' THEN pl.amount * si.quantity / 100 / (12 * COALESCE(pl.interval_count, 1))
-				WHEN pl.interval = 'week' THEN pl.amount * si.quantity / 100 * (52/ 12) / COALESCE(pl.interval_count, 1)
-				WHEN pl.interval = 'day' THEN pl.amount * si.quantity / 100 * (365 / 12)/ COALESCE(pl.interval_count, 1)
-				ELSE 0
-				END
-		) AS subscription_mrr
+		pl.id AS plan_id,
+		pl.product_id,
+		CASE 
+			WHEN pl.interval = 'month' THEN pl.amount * si.quantity / 100 / COALESCE(pl.interval_count, 1)
+			WHEN pl.interval = 'year' THEN pl.amount * si.quantity / 100 / (12 * COALESCE(pl.interval_count, 1))
+			WHEN pl.interval = 'week' THEN pl.amount * si.quantity / 100 * (52/ 12) / COALESCE(pl.interval_count, 1)
+			WHEN pl.interval = 'day' THEN pl.amount * si.quantity / 100 * (365 / 12)/ COALESCE(pl.interval_count, 1)
+			ELSE 0
+			END AS subscription_mrr
 	FROM all_stripe.subscription_item AS si
 	JOIN all_stripe.plan AS pl
 		ON si.plan_id = pl.id
-	GROUP BY 1,2
 ),
 
 -- 3) Attach MRR + currency to each subscription slice
@@ -63,7 +62,9 @@ active_slices_with_mrr AS (
 		sas.ended_at,
 		COALESCE(sm.subscription_mrr, 0) AS mrr_local,
 		COALESCE(sm.subscription_mrr, 0) / fx.fx_to_usd AS mrr_usd,
-		sm.currency
+		sm.currency,
+		sm.plan_id,
+		sm.product_id
 	FROM sub_active_slices AS sas
 	LEFT JOIN sub_mrr AS sm
 		ON sas.subscription_id = sm.subscription_id
@@ -107,13 +108,15 @@ SELECT
 	aswm.created_at,
 	COALESCE(lp.last_paid, aswm.ended_at) AS ended_at,
 	aswm.currency,
+	aswm.plan_id,
+	aswm.product_id,
 	-- If subscription was active, return MRR; else 0
 	CASE
 		WHEN aswm.ended_at >= mc.month_start THEN aswm.mrr_local
 		ELSE 0
 		END AS mrr_local,
 	CASE
-		WHEN aswm.ended_at >= mc.month_start THEN aswm.mrr_usd
+		WHEN COALESCE(lp.last_paid, aswm.ended_at) >= mc.month_start THEN aswm.mrr_usd
 		ELSE 0
 		END AS mrr_usd
 FROM active_slices_with_mrr AS aswm
@@ -122,5 +125,5 @@ LEFT JOIN last_payment AS lp
 	AND aswm.status = 'canceled'
 LEFT JOIN monthly_calendar AS mc
 	ON aswm.created_at <= LAST_DAY(mc.month_start)
-	AND aswm.ended_at >= DATE_ADD(COALESCE(lp.last_paid, aswm.ended_at), INTERVAL -1 MONTH)
+	AND COALESCE(lp.last_paid, aswm.ended_at) >= DATE_ADD(mc.month_start, INTERVAL -1 MONTH)
 
