@@ -38,6 +38,8 @@ sub_mrr AS (
 		si.subscription_id,
 		pl.currency,
 		pl.id AS plan_id,
+		pl.interval,
+		pl.interval_count,
 		pl.product_id,
 		CASE 
 			WHEN pl.interval = 'month' THEN pl.amount * si.quantity / 100 / COALESCE(pl.interval_count, 1)
@@ -69,6 +71,8 @@ active_slices_with_mrr AS (
 		COALESCE(sm.subscription_mrr, 0) / fx.fx_to_usd AS mrr_usd,
 		sm.currency,
 		sm.plan_id,
+		sm.interval,
+		sm.interval_count,
 		sm.product_id,
 		sm.n_boxes,
 		sm.product_name,
@@ -118,6 +122,8 @@ SELECT
 	COALESCE(lp.last_paid, aswm.ended_at) AS ended_at,
 	aswm.currency,
 	aswm.plan_id,
+	aswm.interval,
+	aswm.interval_count,
 	aswm.product_id,
 	aswm.product_name,
 	aswm.n_boxes,
