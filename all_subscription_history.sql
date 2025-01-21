@@ -45,10 +45,15 @@ sub_mrr AS (
 			WHEN pl.interval = 'week' THEN pl.amount * si.quantity / 100 * (52/ 12) / COALESCE(pl.interval_count, 1)
 			WHEN pl.interval = 'day' THEN pl.amount * si.quantity / 100 * (365 / 12)/ COALESCE(pl.interval_count, 1)
 			ELSE 0
-			END AS subscription_mrr
+			END AS subscription_mrr,
+		JSON_EXTRACT_SCALAR(pl.metadata, '$.boxes') AS n_boxes,
+		prod.name AS product_name,
+		COALESCE(JSON_EXTRACT(prod.metadata, '$.condition'), 'Other') AS condition
 	FROM all_stripe.subscription_item AS si
 	JOIN all_stripe.plan AS pl
 		ON si.plan_id = pl.id
+	LEFT JOIN all_stripe.product AS prod
+		ON pl.product_id = prod.id
 ),
 
 -- 3) Attach MRR + currency to each subscription slice
@@ -64,12 +69,16 @@ active_slices_with_mrr AS (
 		COALESCE(sm.subscription_mrr, 0) / fx.fx_to_usd AS mrr_usd,
 		sm.currency,
 		sm.plan_id,
-		sm.product_id
+		sm.product_id,
+		sm.n_boxes,
+		sm.product_name,
+		sm.condition
 	FROM sub_active_slices AS sas
 	LEFT JOIN sub_mrr AS sm
 		ON sas.subscription_id = sm.subscription_id
 	LEFT JOIN ref.fx_rates AS fx
 		ON sm.currency = fx.currency
+		
 ),
 
 -- 4) Build a monthly calendar from 2020-08-01 to current date
@@ -110,6 +119,9 @@ SELECT
 	aswm.currency,
 	aswm.plan_id,
 	aswm.product_id,
+	aswm.product_name,
+	aswm.n_boxes,
+	aswm.condition,
 	-- If subscription was active, return MRR; else 0
 	CASE
 		WHEN aswm.ended_at >= mc.month_start THEN aswm.mrr_local
