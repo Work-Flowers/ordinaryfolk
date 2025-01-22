@@ -1,8 +1,8 @@
 -- Drop the existing view if it exists
-DROP VIEW IF EXISTS `all_stripe.subscription_metrics`;
+DROP VIEW IF EXISTS `all_stripe.customer_metrics`;
 
 -- Create the view
-CREATE VIEW `all_stripe.subscription_metrics` AS
+CREATE VIEW `all_stripe.customer_metrics` AS
 
 WITH 
 -- 1) Use a window function to get only the *latest* row per subscription
@@ -101,23 +101,12 @@ last_payment AS (
 -- 6) Final SELECT
 SELECT
 	aswm.region,
-	aswm.subscription_id,
 	aswm.customer_id,
 	cal.obs_date,
-	aswm.created_at,
-	-- for subs that have been canceled, take the date of the last successful payment as the ended_at date
-	-- smooths out cliff caused by one-time cancellation of large number of past-due subs in Jul-24
-	COALESCE(lp.last_paid, aswm.ended_at) AS ended_at,
-	aswm.currency,
-	aswm.plan_id,
-	aswm.interval,
-	aswm.interval_count,
 	aswm.product_id,
 	aswm.product_name,
-	aswm.n_boxes,
 	aswm.condition,
-	aswm.mrr_local,
-	aswm.mrr_usd
+	SUM(aswm.mrr_usd) AS mrr_usd
 FROM active_slices_with_mrr AS aswm
 LEFT JOIN last_payment AS lp
 	ON aswm.subscription_id = lp.subscription_id
@@ -125,3 +114,4 @@ LEFT JOIN last_payment AS lp
 INNER JOIN calendar AS cal
 	ON aswm.created_at <= cal.obs_date
 	AND COALESCE(lp.last_paid, aswm.ended_at) >= cal.obs_date
+GROUP BY 1,2,3,4,5,6
