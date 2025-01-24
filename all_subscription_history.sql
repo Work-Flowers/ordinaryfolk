@@ -42,6 +42,8 @@ sub_mrr AS (
 		ON si.plan_id = pl.id
 	LEFT JOIN all_stripe.product AS prod
 		ON pl.product_id = prod.id
+	WHERE
+		si.quantity > 0
 ),
 
 -- 3) Attach MRR + currency to each subscription slice
@@ -116,12 +118,21 @@ SELECT
 	aswm.product_name,
 	aswm.n_boxes,
 	aswm.condition,
-	aswm.mrr_local,
-	aswm.mrr_usd
+	CASE 
+		WHEN COALESCE(lp.last_paid, aswm.ended_at) >= cal.obs_date THEN aswm.mrr_local
+		ELSE 0 
+		END AS mrr_local,
+	CASE 
+		WHEN COALESCE(lp.last_paid, aswm.ended_at) >= cal.obs_date THEN aswm.mrr_usd
+		ELSE 0 
+		END AS mrr_usd
 FROM active_slices_with_mrr AS aswm
+-- INNER JOIN to only include subscriptions that have had at least one succesful charge
+INNER JOIN last_payment AS success
+	ON aswm.subscription_id = success.subscription_id
 LEFT JOIN last_payment AS lp
 	ON aswm.subscription_id = lp.subscription_id
 	AND aswm.status = 'canceled'
 INNER JOIN calendar AS cal
 	ON aswm.created_at <= cal.obs_date
-	AND COALESCE(lp.last_paid, aswm.ended_at) >= cal.obs_date
+	AND COALESCE(lp.last_paid, aswm.ended_at) >= DATE_ADD(cal.obs_date, INTERVAL -1 DAY)
