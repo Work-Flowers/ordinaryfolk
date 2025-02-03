@@ -37,6 +37,7 @@ SELECT
 	g.country_code,
 	NULL AS reach,
 	SUM(s.impressions) AS impressions,
+	SUM(s.clicks) AS clicks,
 	-- Convert micros to standard currency
 	SUM(s.cost_micros) / 1000000 AS cost_local, 	
 	SUM(s.cost_micros / fx.fx_to_usd) / 1000000 AS cost_usd 
@@ -58,6 +59,7 @@ SELECT
 	d.date,
 	a.currency AS currency_code,
 	d.country AS country_code,
+	SUM(d.ctr * d.impressions) AS clicks,
 	SUM(d.reach) AS reach,
 	SUM(d.impressions) AS impressions,
 	SUM(d.spend) AS cost_local,
