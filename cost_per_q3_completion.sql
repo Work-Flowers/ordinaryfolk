@@ -70,7 +70,8 @@ SELECT DISTINCT
     seg.date,
     seg.completions,
     all_traffic.page_visits,
-    SUM(COALESCE(fb.spend, cs.cost_micros / 1e6) / fx.fx_to_usd) AS spend_usd 
+    SUM(COALESCE(fb.spend, cs.cost_micros / 1e6) / fx.fx_to_usd) AS spend_usd,
+    SUM(COALESCE(fb.ctr * fb.impressions / 100, cs.clicks)) AS clicks 
 FROM seg
 LEFT JOIN all_traffic
 	ON seg.utm_source = all_traffic.utm_source
