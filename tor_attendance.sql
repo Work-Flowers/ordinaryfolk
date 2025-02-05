@@ -13,6 +13,10 @@ SELECT
 		PARSE_DATETIME('%d-%m-%Y %I:%M%p', tor.schedule_date)
 	) AS appt_date,
 	t.user_id,
+	tor.region AS country,
+	tor.platform,
+	tor.product_name AS product,
+	tor.consult_type,
 	attendance.attendance
 FROM segment.automatically_booked_follow_up_consult AS tor
 LEFT JOIN segment.tracks AS t
