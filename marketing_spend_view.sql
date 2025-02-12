@@ -58,15 +58,17 @@ SELECT
 	'facebook_ads' AS channel,
 	d.date,
 	a.currency AS currency_code,
-	d.country AS country_code,
+    REGEXP_REPLACE(ash.targeting_geo_locations_countries, r'[\[\]"]', '') AS country_code,
 	SUM(d.reach) AS reach,
 	SUM(d.ctr * d.impressions / 100) AS clicks,
 	SUM(d.impressions) AS impressions,
 	SUM(d.spend) AS cost_local,
 	SUM(d.spend / fx.fx_to_usd) AS cost_usd
-FROM facebook_ads.demographics_country AS d
-LEFT JOIN fb_account_currency AS a 
-	ON d.account_id = a.account_id
+FROM facebook_ads.basic_ad_set AS d
+LEFT JOIN facebook_ads.ad_set_history AS ash
+    ON d.adset_id = CAST(ash.id AS STRING)
+LEFT JOIN fb_account_currency AS a
+	ON CAST(d.account_id AS STRING) = a.account_id
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(a.currency) = fx.currency
 GROUP BY 1,2,3,4
