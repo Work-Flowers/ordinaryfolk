@@ -16,12 +16,12 @@ billing <- "noah-e30be"
 bq_auth("dennis@work.flowers")
 # pull data ---------------------------------------------------------------
 
-sql <- "SELECT * FROM noah-e30be.all_stripe.subscription_history"
+sql <- "SELECT * FROM noah-e30be.all_stripe.subscription_metrics"
 
 tb <- bq_project_query(billing, sql)
 df_raw <- bq_table_download(tb)
 
-saveRDS(df_raw, "raw.rds")
+# saveRDS(df_raw, "raw.rds")
 
 
 # customer-level analysis -------------------------------------------------
@@ -57,7 +57,7 @@ df_cust_classified <- df_customers |>
 df_cust_summary <- df_cust_classified |> 
   group_by(month_start, status) |> 
   summarize(
-    n = n(),
+    n = n_distinct(customer_id),
     across(c(mrr_usd, mrr_delta), sum),
     .groups = "drop"
   ) |> 
@@ -86,74 +86,68 @@ df_churn <- df_cust_summary |>
   )
 
 # plot customers ----------------------------------------------------------
-(
-  p_actives <- df_cust_summary |> 
-    filter(
-      mrr_usd > 0,
-      month_start >= as.yearmon("2023-01")
-      ) |> 
-    ggplot(aes(month_start, n)) +
-    geom_col(aes(fill = status)) +
-    scale_x_yearmon(format = "%b %y", n = 5) +
-    scale_y_continuous(labels = label_comma()) +
-    PrettyCols::scale_fill_pretty_d("Bold") +
-    labs(
-      y = "No. of Customers",
-      x = NULL,
-      fill = "Customer Type",
-      title = "No.of Active Customers by Status",
-      subtitle = "Source: Stripe"
-    )
-)
 
-(
-  p_mrr <- df_cust_summary |> 
-    filter(
-      mrr_usd > 0,
-      month_start >= as.yearmon("2023-01")
+p_actives <- df_cust_summary |> 
+  filter(
+    mrr_usd > 0,
+    month_start >= as.yearmon("2023-01")
     ) |> 
-    ggplot(aes(month_start, mrr_usd)) +
-    geom_col(aes(fill = status)) +
-    scale_x_yearmon(format = "%b %y", n = 5) +
-    scale_y_continuous(labels = label_dollar()) +
-    PrettyCols::scale_fill_pretty_d("Bold") +
-    labs(
-      y = "Total MRR",
-      x = NULL,
-      fill = "Customer Type",
-      title = "Total MRR by Status",
-      subtitle = "Source: Stripe"
-    )
+  ggplot(aes(month_start, n)) +
+  geom_col(aes(fill = status)) +
+  scale_x_yearmon(format = "%b %y", n = 5) +
+  scale_y_continuous(labels = label_comma()) +
+  PrettyCols::scale_fill_pretty_d("Bold") +
+  labs(
+    y = "No. of Customers",
+    x = NULL,
+    fill = "Customer Status",
+    title = "No.of Active Customers by Status",
+    subtitle = "Source: Stripe"
+  )
+
+p_mrr <- df_cust_summary |> 
+  filter(
+    mrr_usd > 0,
+    month_start >= as.yearmon("2023-01")
+  ) |> 
+  ggplot(aes(month_start, mrr_usd)) +
+  geom_col(aes(fill = status)) +
+  scale_x_yearmon(format = "%b %y", n = 5) +
+  scale_y_continuous(labels = label_dollar()) +
+  PrettyCols::scale_fill_pretty_d("Bold") +
+  labs(
+    y = "Total MRR",
+    x = NULL,
+    fill = "Customer Status",
+    title = "Total MRR by Customer Status",
+    subtitle = "Source: Stripe"
+  )
+
+p_churn <- df_churn |> 
+filter(month_start >= as.yearmon("2023-01")) |> 
+ggplot(aes(month_start, churn_rate)) +
+geom_line(color = "blue") + 
+scale_x_yearmon(format = "%b %y", n = 5) +
+scale_y_continuous(labels = label_percent()) +
+labs(
+  y = "Churn Rate",
+  x = NULL,
+  title = "% of Customers Churning from Prior Month",
+  subtitle = "Source: Stripe"
 )
 
-(
-  p_churn <- df_churn |> 
+p_dollar_churn <- df_churn |> 
   filter(month_start >= as.yearmon("2023-01")) |> 
-  ggplot(aes(month_start, churn_rate)) +
+  ggplot(aes(month_start, dollar_churn_rate)) +
   geom_line(color = "blue") + 
   scale_x_yearmon(format = "%b %y", n = 5) +
   scale_y_continuous(labels = label_percent()) +
   labs(
-    y = "Churn Rate",
+    y = "Dollar Churn Rate",
     x = NULL,
-    title = "% of Customers Churning from Prior Month",
+    title = "% of MRR Churning from Prior Month",
     subtitle = "Source: Stripe"
   )
-)
 
-(
-  p_dollar_churn <- df_churn |> 
-    filter(month_start >= as.yearmon("2023-01")) |> 
-    ggplot(aes(month_start, dollar_churn_rate)) +
-    geom_line(color = "blue") + 
-    scale_x_yearmon(format = "%b %y", n = 5) +
-    scale_y_continuous(labels = label_percent()) +
-    labs(
-      y = "Dollar Churn Rate",
-      x = NULL,
-      title = "% of MRR Churning from Prior Month",
-      subtitle = "Source: Stripe"
-    )
-)
 
 (p_actives + p_churn) / (p_mrr + p_dollar_churn)

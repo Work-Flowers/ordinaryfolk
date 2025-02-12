@@ -71,4 +71,6 @@ LEFT JOIN fb_account_currency AS a
 	ON CAST(d.account_id AS STRING) = a.account_id
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(a.currency) = fx.currency
+WHERE
+    (d.reach > 0 OR d.ctr > 0 or d.spend > 0)
 GROUP BY 1,2,3,4
