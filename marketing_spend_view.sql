@@ -28,6 +28,12 @@ fb_account_currency AS (
 		currency
     FROM facebook_ads.account_history
 	QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY created_time DESC) = 1
+),
+
+fb_ash AS (
+	SELECT *
+	FROM facebook_ads.ad_set_history
+	QUALIFY ROW_NUMBER() OVER(PARTITION BY id ORDER BY updated_time DESC) = 1
 )
 
 SELECT
@@ -65,7 +71,7 @@ SELECT
 	SUM(d.spend) AS cost_local,
 	SUM(d.spend / fx.fx_to_usd) AS cost_usd
 FROM facebook_ads.basic_ad_set AS d
-LEFT JOIN facebook_ads.ad_set_history AS ash
+LEFT JOIN fb_ash AS ash
     ON d.adset_id = CAST(ash.id AS STRING)
 LEFT JOIN fb_account_currency AS a
 	ON CAST(d.account_id AS STRING) = a.account_id
