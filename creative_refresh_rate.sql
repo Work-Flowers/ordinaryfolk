@@ -4,6 +4,7 @@ SELECT
     CASE 
     	WHEN ch.objective = 'OUTCOME_SALES' THEN 'Sales'
     	WHEN ch.objective = 'OUTCOME_AWARENESS' THEN 'Awareness'
+        WHEN ch.objective = 'OUTCOME_ENGAGEMENT' THEN 'Engagement'
     	ELSE ch.objective
     	END AS objective,
     MIN(ba.date) OVER (PARTITION BY cr.id) AS create_date
