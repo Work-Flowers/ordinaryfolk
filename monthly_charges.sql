@@ -30,10 +30,10 @@ LEFT JOIN all_stripe.invoice_line_item AS ii
 	ON ch.invoice_id = ii.invoice_id
 LEFT JOIN all_stripe.price AS px
 -- use price_id from invoice line item if available; otherwise look for price_id in payment_intent metadata
-	ON COALESCE(ii.price_id, JSON_EXTRACT(pi.metadata, '$.paymentIntentPriceId'), JSON_EXTRACT(pi.metadata, '$.stripePriceIds')) = px.id
+	ON COALESCE(ii.price_id, JSON_EXTRACT_SCALAR(pi.metadata, '$.paymentIntentPriceId'), JSON_EXTRACT_SCALAR(pi.metadata, '$.stripePriceIds')) = px.id
 LEFT JOIN all_stripe.product AS prod
 	ON px.product_id = prod.id
-LEFT JOIN google_sheets.product_cogs AS pc
+LEFT JOIN google_sheets.stripe_cogs AS pc
 	ON px.id = pc.price_id
 WHERE
 	ch.status = 'succeeded'
