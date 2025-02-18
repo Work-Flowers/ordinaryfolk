@@ -80,3 +80,22 @@ LEFT JOIN ref.fx_rates AS fx
 WHERE
     (d.reach > 0 OR d.ctr > 0 or d.spend > 0)
 GROUP BY 1,2,3,4
+
+UNION ALL
+
+SELECT
+	'taboola' AS channel,
+	plat.date,
+	plat.currency AS currency_code,
+	tgt.value AS country_code,
+	SUM(0) AS reach,
+	SUM(plat.clicks) AS clicks,
+	SUM(plat.impressions) AS impressions,
+	SUM(plat.spent) AS cost_local,
+	SUM(plat.spent / fx.fx_to_usd) AS cost_usd
+FROM taboola.platform_report AS plat
+LEFT JOIN taboola.targeting_country	AS tgt
+	ON plat.campaign_id = tgt.campaign_id
+LEFT JOIN ref.fx_rates AS fx
+	ON LOWER(plat.currency) = LOWER(fx.currency)
+GROUP BY 1,2,3,4
