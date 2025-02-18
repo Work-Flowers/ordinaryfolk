@@ -40,7 +40,7 @@ subscriptions AS (
 	WHERE 
 		1 = 1
 		AND obs_date = DATE_TRUNC(obs_date, month) 
-		AND mrr_usd = 0
+		AND mrr_usd > 0
 	GROUP BY 1,2
 )
 
