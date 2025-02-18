@@ -13,15 +13,15 @@ WITH stripe_data AS(
 		ch.customer_id,
 		ch.id AS charge_id,
 		DATE(ch.created) AS purchase_date,
-		ch.amount / fx.fx_to_usd / 100 AS total_charge_amount_usd,
+		ch.amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS total_charge_amount_usd,
 		COALESCE(ch.amount_refunded / ch.amount, 0) AS refund_rate,
 		prod.id AS product_id,
 		prod.name AS product_name,
 		px.id AS price_id,
 		JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') AS condition,
 		COALESCE(ii.quantity, 1) AS quantity,
-		px.unit_amount / fx.fx_to_usd / 100 AS line_item_amount_usd,
-		pc.cogs / fx.fx_to_usd / 100 AS cogs,
+		px.unit_amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS line_item_amount_usd,
+		pc.cogs / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS cogs,
 		pc.cashback,
 		pc.gst_vat,
 		COALESCE(bt.fee / bt.amount, 0) AS fee_rate
@@ -32,6 +32,8 @@ WITH stripe_data AS(
 		ON ch.balance_transaction_id = bt.id
 	INNER JOIN ref.fx_rates AS fx
 		ON ch.currency = fx.currency
+	LEFT JOIN ref.stripe_currency_subunits AS sub
+		ON fx.currency = sub.currency
 	LEFT JOIN all_stripe.invoice_line_item AS ii
 		ON ch.invoice_id = ii.invoice_id
 	LEFT JOIN all_stripe.price AS px
