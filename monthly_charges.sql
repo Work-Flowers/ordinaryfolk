@@ -66,7 +66,7 @@ tiktok_data AS(
 	LEFT JOIN google_sheets.tiktok_cogs AS tok
 		ON tik.sku_id = tok.sku_id
 	LEFT JOIN ref.fx_rates AS fx
-		ON tik.currency = fx.currency
+		ON LOWER(tik.currency) = LOWER(fx.currency)
 	WHERE
 		tik.revenue > 0
 )
