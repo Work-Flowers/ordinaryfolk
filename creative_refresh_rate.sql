@@ -27,7 +27,6 @@ adsets AS (
 )
 
 SELECT
-    ba.date,
     CASE
         WHEN LOWER(acc.name) LIKE '%zoey%' THEN 'Zoey'
         WHEN LOWER(acc.name) LIKE '%noah%' THEN 'Noah'

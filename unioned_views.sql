@@ -165,21 +165,24 @@ CREATE VIEW `all_stripe.payment_intent` AS
 
 SELECT
 	'sg' AS region,
-	sg.*
+	id,
+  metadata
 FROM sg_stripe.payment_intent AS sg
 
 UNION ALL
 
 SELECT
 	'hk' AS region,
-	hk.*
+	id,
+  metadata
 FROM hk_stripe.payment_intent AS hk
 
 UNION ALL
 
 SELECT
 	'jp' AS region,
-	jp.*
+	id,
+  metadata
 FROM jp_stripe.payment_intent AS jp;
 
 
@@ -251,3 +254,68 @@ SELECT
 	'jp' AS region,
 	jp.*
 FROM jp_stripe.customer AS jp;
+
+-- 11) balance_transaction
+DROP VIEW IF EXISTS `all_stripe.balance_transaction`;
+CREATE VIEW `all_stripe.balance_transaction` AS
+
+SELECT
+	'sg' AS region,
+	id,
+	connected_account_id,
+	amount,
+	available_on,
+	created,
+	currency,
+	description,
+	exchange_rate,
+	fee,
+	net,
+	source,
+	status,
+	type,
+	reporting_category,
+	_fivetran_synced
+FROM sg_stripe.balance_transaction AS sg
+
+UNION ALL
+
+SELECT
+	'hk' AS region,
+	id,
+	connected_account_id,
+	amount,
+	available_on,
+	created,
+	currency,
+	description,
+	exchange_rate,
+	fee,
+	net,
+	source,
+	status,
+	type,
+	reporting_category,
+	_fivetran_synced
+FROM hk_stripe.balance_transaction AS hk
+
+UNION ALL
+
+SELECT
+	'jp' AS region,
+	id,
+	connected_account_id,
+	amount,
+	available_on,
+	created,
+	currency,
+	description,
+	exchange_rate,
+	fee,
+	net,
+	source,
+	status,
+	type,
+	reporting_category,
+	_fivetran_synced
+FROM jp_stripe.balance_transaction AS jp;
