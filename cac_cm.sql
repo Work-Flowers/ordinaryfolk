@@ -27,7 +27,12 @@ cm AS (
 		SUM(refund_rate * COALESCE(line_item_amount_usd, total_charge_amount_usd)) AS refund_usd
 		
 	FROM finance_metrics.contribution_margin
-	WHERE purchase_type = 'Subscription'
+	
+	WHERE 
+		1 = 1
+		-- we only want to use subscription revenue for this calculation of contribution margin,
+		-- because we are applying the CM% to MRR in the final CAC payback period calc
+		AND purchase_type = 'Subscription'
 	GROUP BY 1,2
 ),
 
@@ -35,6 +40,7 @@ subscriptions AS (
 	SELECT
 		obs_date AS date,
 		region AS country,
+		COUNT(DISTINCT customer_id) AS total_subscribers,
 		SUM(mrr_usd) AS mrr
 	FROM all_stripe.subscription_metrics
 	WHERE 
@@ -53,6 +59,7 @@ SELECT
 	cm.gst_vat_usd,
 	cm.refund_usd,
 	subscriptions.mrr,
+	subscriptions.total_subscribers,
 	COUNT(DISTINCT ad.customer_id) AS n_new_customers
 FROM marketing AS mar
 LEFT JOIN acq_dates AS ad
@@ -64,4 +71,4 @@ LEFT JOIN cm
 LEFT JOIN subscriptions
 	ON mar.date = subscriptions.date
 	AND LOWER(mar.country) = LOWER(subscriptions.country)
-GROUP BY 1,2,3,4,5,6,7,8
+GROUP BY 1,2,3,4,5,6,7,8,9
