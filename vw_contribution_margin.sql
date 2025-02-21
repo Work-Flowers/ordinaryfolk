@@ -24,7 +24,8 @@ WITH stripe_data AS(
 		pc.cogs / fx.fx_to_usd AS cogs,
 		pc.cashback,
 		pc.gst_vat,
-		COALESCE(bt.fee / bt.amount, 0) AS fee_rate
+		COALESCE(bt.fee / bt.amount, 0) AS fee_rate,
+		pc.packaging / fx.fx_to_usd AS packaging
 	FROM all_stripe.charge AS ch
 	INNER JOIN all_stripe.payment_intent AS pi
 		ON ch.payment_intent_id = pi.id
@@ -71,7 +72,8 @@ tiktok_data AS(
 		0 AS cashback,
 		0 AS gst_vat,
 		-- fees entered as a negative number in TikTok Orders google sheet (https://docs.google.com/spreadsheets/d/1_XWOXag-iUo8BHjDh7-5pgwhv3rcFU1xG62TCRIIO6A/edit?gid=571245014#gid=571245014)
-		-COALESCE(tik.payment_gateway_fee / tik.revenue, 0) AS fee_rate 
+		-COALESCE(tik.payment_gateway_fee / tik.revenue, 0) AS fee_rate,
+		tok.packaging / fx.fx_to_usd AS packaging,
 	FROM google_sheets.tiktok_orders AS tik
 	LEFT JOIN google_sheets.tiktok_cogs AS tok
 		ON tik.sku_id = tok.sku_id
@@ -87,6 +89,7 @@ lazada_data AS (
 		lc.product_name,
 		o.seller_sku,
 		lc.cogs / fx.fx_to_usd AS cogs,
+		lc.packaging / fx.fx_to_usd AS packaging,
 		SUM(CASE WHEN o.transaction_type = 'Orders-Sales' THEN o.amount / fx.fx_to_usd ELSE 0 END) AS line_item_amount_usd,
 		SUM(CASE WHEN o.transaction_type LIKE 'Refunds%' THEN -o.amount / fx.fx_to_usd ELSE 0 END) AS refunds,
 		SUM(
@@ -104,7 +107,7 @@ lazada_data AS (
 		ON LOWER(o.currency) = fx.currency
 	LEFT JOIN google_sheets.lazada_cogs AS lc
 		ON o.seller_sku = lc.seller_sku
-	GROUP BY 1,2,3,4
+	GROUP BY 1,2,3,4,5
 )
 
 
@@ -134,6 +137,7 @@ SELECT
 	cogs,
 	0 AS cashback,
 	0 AS gst_vat,
-	fees / line_item_amount_usd AS fee_rate 
+	fees / line_item_amount_usd AS fee_rate,
+	packaging
 FROM lazada_data
 WHERE line_item_amount_usd > 0
