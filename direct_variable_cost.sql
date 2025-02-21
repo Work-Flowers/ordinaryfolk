@@ -1,12 +1,20 @@
 DROP VIEW IF EXISTS finance_metrics.direct_variable_cost;
 CREATE VIEW finance_metrics.direct_variable_cost AS 
 
-WITH pay_pack AS (
+WITH payment_gateway_fees AS (
 	SELECT
 		cm.region AS country,
 		DATE(DATE_TRUNC(cm.purchase_date, MONTH)) AS date,
-		SUM(cm.fee_rate * cm.line_item_amount_usd) AS fees,
-		SUM(cm.packaging) AS packaging		
+		SUM(cm.fee_rate * cm.line_item_amount_usd) AS cost
+	FROM finance_metrics.contribution_margin AS cm
+	GROUP BY 1,2
+),
+
+packaging AS (
+	SELECT
+		cm.region AS country,
+		DATE(DATE_TRUNC(cm.purchase_date, MONTH)) AS date,
+		SUM(cm.packaging) AS cost		
 	FROM finance_metrics.contribution_margin AS cm
 	GROUP BY 1,2
 ),
@@ -23,9 +31,26 @@ delivery AS (
 )
 
 SELECT
-	pay_pack.*,
-	delivery.cost AS delivery_cost
-FROM pay_pack 
-LEFT JOIN delivery
-	ON pay_pack.date = delivery.date
-	AND pay_pack.country = delivery.country
+	date,
+	country,
+	'Payment Gateway Fees' AS type,
+	cost 
+FROM payment_gateway_fees
+
+UNION ALL
+
+SELECT
+	date,
+	country,
+	'Packaging' AS type,
+	cost 
+FROM packaging
+
+UNION ALL
+
+SELECT
+	date,
+	country,
+	'Delivery' AS type,
+	cost 
+FROM delivery
