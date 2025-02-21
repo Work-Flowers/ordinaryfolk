@@ -11,7 +11,7 @@ WITH stripe_data AS(
 			ELSE 'Subscription'
 			END AS purchase_type,
 		ch.customer_id,
-		ch.id AS charge_id,
+-- 		ch.id AS charge_id,
 		DATE(ch.created) AS purchase_date,
 		ch.amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS total_charge_amount_usd,
 		COALESCE(ch.amount_refunded / ch.amount, 0) AS refund_rate,
@@ -34,6 +34,8 @@ WITH stripe_data AS(
 		ON ch.currency = fx.currency
 	LEFT JOIN ref.stripe_currency_subunits AS sub
 		ON fx.currency = sub.currency
+	LEFT JOIN all_stripe.invoice AS inv
+		ON ch.invoice_id = inv.id
 	LEFT JOIN all_stripe.invoice_line_item AS ii
 		ON ch.invoice_id = ii.invoice_id
 	LEFT JOIN all_stripe.price AS px
@@ -55,7 +57,7 @@ tiktok_data AS(
 		CAST(NULL AS STRING) AS type,
 		'One-Time' AS purchase_type,
 		tik.buyer_username AS customer_id,
-		CAST(tik.order_id AS STRING) AS charge_id,
+-- 		CAST(tik.order_id AS STRING) AS charge_id,
 		tik.created_time AS purchase_date,
 		0 AS total_charge_amount_usd,
 		COALESCE(tik.order_refund_amount, 0) / tik.revenue AS refund_rate,
@@ -68,7 +70,8 @@ tiktok_data AS(
 		tik.quantity * tok.cogs / fx.fx_to_usd AS cogs,
 		0 AS cashback,
 		0 AS gst_vat,
-		COALESCE(tik.payment_gateway_fee / tik.revenue, 0) AS fee_rate
+		-- fees entered as a negative number in TikTok Orders google sheet (https://docs.google.com/spreadsheets/d/1_XWOXag-iUo8BHjDh7-5pgwhv3rcFU1xG62TCRIIO6A/edit?gid=571245014#gid=571245014)
+		-COALESCE(tik.payment_gateway_fee / tik.revenue, 0) AS fee_rate 
 	FROM google_sheets.tiktok_orders AS tik
 	LEFT JOIN google_sheets.tiktok_cogs AS tok
 		ON tik.sku_id = tok.sku_id
@@ -76,8 +79,61 @@ tiktok_data AS(
 		ON LOWER(tik.currency) = LOWER(fx.currency)
 	WHERE
 		tik.revenue > 0
+),
+
+lazada_data AS (
+	SELECT
+		o.transaction_date AS purchase_date,
+		lc.product_name,
+		o.seller_sku,
+		lc.cogs / fx.fx_to_usd AS cogs,
+		SUM(CASE WHEN o.transaction_type = 'Orders-Sales' THEN o.amount / fx.fx_to_usd ELSE 0 END) AS line_item_amount_usd,
+		SUM(CASE WHEN o.transaction_type LIKE 'Refunds%' THEN -o.amount / fx.fx_to_usd ELSE 0 END) AS refunds,
+		SUM(
+			CASE 
+				WHEN o.transaction_type IN (
+					'Orders-Lazada Fees',
+					'Orders-Logistics,'
+					'Orders-Marketing Fees',
+					'Other Services-Marketing Fees'
+				) THEN -o.amount / fx.fx_to_usd ELSE 0 END
+		) AS fees
+		
+	FROM google_sheets.lazada_orders AS o
+	LEFT JOIN ref.fx_rates AS fx
+		ON LOWER(o.currency) = fx.currency
+	LEFT JOIN google_sheets.lazada_cogs AS lc
+		ON o.seller_sku = lc.seller_sku
+	GROUP BY 1,2,3,4
 )
 
+
 SELECT * FROM stripe_data
+
 UNION ALL
+
 SELECT * FROM tiktok_data
+
+UNION ALL
+
+SELECT
+	'Lazada' AS sales_channel,
+	'sg' AS region,
+	CAST(NULL AS STRING) AS type,
+	'One-Time' AS purchase_type,
+	CAST(NULL AS STRING) AS customer_id,
+	purchase_date,
+	0 AS total_charge_amount_usd,
+	refunds / line_item_amount_usd AS refund_rate,
+	seller_sku AS product_id,
+	product_name,
+	CAST(NULL AS STRING) AS price_id,
+	CAST(NULL AS STRING) AS condition,
+	0 AS quantity,
+	line_item_amount_usd,
+	cogs,
+	0 AS cashback,
+	0 AS gst_vat,
+	fees / line_item_amount_usd AS fee_rate 
+FROM lazada_data
+WHERE line_item_amount_usd > 0
