@@ -1,3 +1,6 @@
+DROP VIEW IF EXISTS finance_metrics.monthly_contribution_margin;
+CREATE VIEW finance_metrics.monthly_contribution_margin AS 
+
 WITH cm1 AS (
 	SELECT
 		region AS country,
