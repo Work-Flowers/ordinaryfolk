@@ -134,8 +134,11 @@ shopee_data AS (
 	FROM google_sheets.shopee_orders AS so
 	LEFT JOIN ref.fx_rates AS fx
 		ON LOWER(so.currency) = fx.currency
+	LEFT JOIN google_sheets.shopee_order_quantities AS q
+		ON so.order_id = q.order_id
 	LEFT JOIN google_sheets.shopee_cogs AS sc
 		ON so.product_id = sc.product_id
+		AND q.sku_reference_no_ = sc.sku_reference_no_
 )
 
 
@@ -147,7 +150,7 @@ SELECT * FROM tiktok_data
 
 UNION ALL
 
-SELECT * FROM stripe_data
+SELECT * FROM shopee_data
 
 UNION ALL
 
