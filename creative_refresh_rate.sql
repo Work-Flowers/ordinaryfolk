@@ -21,12 +21,14 @@ adsets AS (
     SELECT
         id AS adset_id,
         optimization_goal,
-        promoted_object_custom_event_type
+        promoted_object_custom_event_type,
+        REGEXP_REPLACE(targeting_geo_locations_countries, r'[\[\]"]', '') AS country_code,
     FROM noah-e30be.facebook_ads.ad_set_history
     QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY _fivetran_synced) = 1
 )
 
 SELECT
+    ba.date,
     CASE
         WHEN LOWER(acc.name) LIKE '%zoey%' THEN 'Zoey'
         WHEN LOWER(acc.name) LIKE '%noah%' THEN 'Noah'
@@ -41,6 +43,7 @@ SELECT
     	END AS objective,
     adsets.optimization_goal,
     adsets.promoted_object_custom_event_type,
+    adsets.country_code AS country,
     MIN(ba.date) OVER (PARTITION BY cr.id) AS create_date
 FROM facebook_ads.creative_history AS cr
 INNER JOIN ads AS ah
@@ -54,4 +57,4 @@ LEFT JOIN facebook_ads.account_history AS acc
     ON ba.account_id = acc.id
 LEFT JOIN adsets
     ON ah.ad_set_id = adsets.adset_id
-GROUP BY 1,2,3,4,5,6
+GROUP BY 1,2,3,4,5,6,7
