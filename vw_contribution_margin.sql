@@ -129,7 +129,7 @@ shopee_data AS (
 		sc.cogs / fx.fx_to_usd AS cogs,
 		0 AS cashback,
 		sc.gst_vat,
-		(so.commission_fee_incl_gst_ + so.ps_finance_pdf_income_service_fee_for_sg + so.transaction_fee_incl_gst_ + so.ams_commission_fee) / GREATEST(so.product_price, 1) AS fee_rate,
+		-(so.commission_fee_incl_gst_ + so.ps_finance_pdf_income_service_fee_for_sg + so.transaction_fee_incl_gst_ + so.ams_commission_fee) / GREATEST(so.product_price, 1) AS fee_rate,
 		sc.packaging / fx.fx_to_usd AS packaging
 	FROM google_sheets.shopee_orders AS so
 	LEFT JOIN ref.fx_rates AS fx
