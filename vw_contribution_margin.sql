@@ -108,6 +108,34 @@ lazada_data AS (
 	LEFT JOIN google_sheets.lazada_cogs AS lc
 		ON o.seller_sku = lc.seller_sku
 	GROUP BY 1,2,3,4,5
+),
+
+shopee_data AS (
+	SELECT
+		'Shopee' AS sales_channel,
+		'sg' AS region,
+		CAST(NULL AS STRING) AS type,
+		'One-Time' AS purchase_type,
+		so.username_buyer_ AS customer_id,
+		DATE(so.payout_completed_date) AS purchase_date,
+		0 AS total_charge_amount_usd,
+		so.refund_amount / GREATEST(so.product_price, 1) AS refund_rate,
+		CAST(so.product_id AS STRING) AS product_id,
+		so.product_name,
+		CAST(NULL AS STRING) AS price_id,
+		sc.condition,
+		1 AS quantity,
+		so.product_price / fx.fx_to_usd AS line_item_amount_usd,
+		sc.cogs / fx.fx_to_usd AS cogs,
+		0 AS cashback,
+		sc.gst_vat,
+		(so.commission_fee_incl_gst_ + so.ps_finance_pdf_income_service_fee_for_sg + so.transaction_fee_incl_gst_ + so.ams_commission_fee) / GREATEST(so.product_price, 1) AS fee_rate,
+		sc.packaging / fx.fx_to_usd AS packaging
+	FROM google_sheets.shopee_orders AS so
+	LEFT JOIN ref.fx_rates AS fx
+		ON LOWER(so.currency) = fx.currency
+	LEFT JOIN google_sheets.shopee_cogs AS sc
+		ON so.product_id = sc.product_id
 )
 
 
@@ -116,6 +144,10 @@ SELECT * FROM stripe_data
 UNION ALL
 
 SELECT * FROM tiktok_data
+
+UNION ALL
+
+SELECT * FROM stripe_data
 
 UNION ALL
 
