@@ -9,7 +9,7 @@ WITH cm1 AS (
 		SUM(cogs) AS cogs,
 		SUM(packaging) AS packaging,
 		SUM(cashback) AS cashback,
-		SUM(gst_vat) AS gst_vat,
+		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * gst_vat) AS gst_vat,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * fee_rate) AS payment_gateway_fees,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * refund_rate) AS refunds
 	FROM finance_metrics.contribution_margin
