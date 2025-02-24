@@ -25,13 +25,26 @@ delivery AS (
 	LEFT JOIN ref.fx_rates AS fx
 		ON LOWER(dc.currency) = LOWER(fx.currency)
 	GROUP BY 1,2
+),
+
+marketing AS (
+	SELECT
+		DATE_TRUNC(date, MONTH) AS date,
+		LOWER(country_code) AS country,
+		SUM(cost_usd) AS cost
+	FROM cac.marketing_spend
+	GROUP BY 1,2
+
 )
 
 SELECT
-
 	cm1.*,
-	delivery.cost AS delivery_cost
+	delivery.cost AS delivery_cost,
+	mar.cost AS marketing_cost
 FROM cm1
 LEFT JOIN delivery
 	ON cm1.date = delivery.date
 	AND cm1.country = delivery.country
+LEFT JOIN marketing AS mar
+	ON cm1.date = mar.date
+	AND cm1.country = mar.country
