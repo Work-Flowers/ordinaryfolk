@@ -20,7 +20,7 @@ WITH stripe_data AS(
 		px.id AS price_id,
 		JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') AS condition,
 		COALESCE(ii.quantity, 1) AS quantity,
-		px.unit_amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS line_item_amount_usd,
+		ch.amount / COALESCE(inv.subtotal, ch.amount) * px.unit_amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS line_item_amount_usd,
 		pc.cogs / fx.fx_to_usd AS cogs,
 		pc.cashback,
 		pc.gst_vat,
