@@ -124,7 +124,7 @@ shopee_data AS (
 		so.product_name,
 		CAST(NULL AS STRING) AS price_id,
 		sc.condition,
-		1 AS quantity,
+		COALESCE(q.quantity, 1) AS quantity,
 		so.product_price / fx.fx_to_usd AS line_item_amount_usd,
 		sc.cogs / fx.fx_to_usd AS cogs,
 		0 AS cashback,
