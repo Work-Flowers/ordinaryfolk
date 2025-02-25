@@ -1,5 +1,5 @@
-DROP VIEW IF EXISTS google_sheets.cod_sg_orders_all;
-CREATE VIEW google_sheets.cod_sg_orders_all AS 
+DROP VIEW IF EXISTS finance_metrics.cod_sg_orders_all;
+CREATE VIEW finance_metrics.cod_sg_orders_all AS 
 
 SELECT
 	a.purchase_date AS date,
