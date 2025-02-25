@@ -3,6 +3,7 @@ CREATE VIEW finance_metrics.cod_sg_orders_all AS
 
 SELECT
 	a.purchase_date AS date,
+	a.email,
 	LOWER(a.currency) AS currency,
 	a.quantity,
 	a.product_id,
@@ -13,6 +14,7 @@ UNION ALL
 
 SELECT
 	b.date,
+	b.email,
 	LOWER(b.currency) AS currency,
 	b.quantity,
 	b.product_id,
