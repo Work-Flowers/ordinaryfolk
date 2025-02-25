@@ -139,6 +139,36 @@ shopee_data AS (
 	LEFT JOIN google_sheets.shopee_cogs AS sc
 		ON so.product_id = sc.product_id
 		AND q.sku_reference_no_ = sc.sku_reference_no_
+),
+
+sg_cod_data AS (
+	SELECT
+		'SG COD' AS sales_channel,
+		'sg' AS region,
+		CAST(NULL AS STRING) AS type,
+		'One-Time' AS purchase_type,
+		o.email AS customer_id,
+		o.date AS purchase_date,
+		o.purchase_amount / fx.fx_to_usd AS total_charge_amount_usd,
+		0 AS refund_rate,
+		o.email AS product_id,
+		prod.name AS product_name,
+		CAST(NULL AS STRING) AS price_id,
+		JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') AS condition,
+		o.quantity,
+		o.purchase_amount / fx.fx_to_usd AS line_item_amount_usd,
+		c.cogs / fx.fx_to_usd AS cogs,
+		c.cashback,
+		c.gst_vat,
+		0 AS fee_rate,
+		c.packaging / fx.fx_to_usd AS packaging
+	FROM finance_metrics.cod_sg_orders_all AS o
+	LEFT JOIN ref.fx_rates AS fx
+		ON o.currency = fx.currency
+	LEFT JOIN google_sheets.cod_sg_cogs AS c
+		ON o.product_id = c.product_id
+	LEFT JOIN all_stripe.product AS prod
+		ON o.product_id = prod.id
 )
 
 
@@ -151,6 +181,10 @@ SELECT * FROM tiktok_data
 UNION ALL
 
 SELECT * FROM shopee_data
+
+UNION ALL
+
+SELECT * FROM sg_cod_data
 
 UNION ALL
 
