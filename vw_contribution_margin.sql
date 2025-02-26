@@ -172,7 +172,7 @@ sg_cod_data AS (
 	FROM finance_metrics.cod_sg_orders_all AS o
 	LEFT JOIN ref.fx_rates AS fx
 		ON o.currency = fx.currency
-	LEFT JOIN google_sheets.cod_sg_cogs AS c
+	LEFT JOIN all_stripe.product_cost AS c
 		ON o.product_id = c.product_id
 	LEFT JOIN all_stripe.product AS prod
 		ON o.product_id = prod.id
