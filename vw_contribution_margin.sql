@@ -49,7 +49,7 @@ WITH stripe_data AS(
 		ON COALESCE(ii.price_id, JSON_EXTRACT_SCALAR(pi.metadata, '$.paymentIntentPriceId'), JSON_EXTRACT_SCALAR(pi.metadata, '$.stripePriceIds')) = px.id
 	LEFT JOIN all_stripe.product AS prod
 		ON px.product_id = prod.id
-	LEFT JOIN google_sheets.stripe_cogs AS pc
+	LEFT JOIN all_stripe.product_cost AS pc
 		ON px.id = pc.price_id
 	WHERE
 		ch.status = 'succeeded'
