@@ -13,6 +13,7 @@ WITH cm1 AS (
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * fee_rate) AS payment_gateway_fees,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * refund_rate) AS refunds
 	FROM finance_metrics.contribution_margin
+	WHERE purchase_type = 'Subscription'
 	GROUP BY 1,2
 ),
 
