@@ -164,16 +164,16 @@ sg_cod_data AS (
 		JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') AS condition,
 		o.quantity,
 		o.purchase_amount / fx.fx_to_usd AS line_item_amount_usd,
-		c.cogs / fx.fx_to_usd AS cogs,
-		c.cashback,
-		c.gst_vat,
+		c.cost_box / fx.fx_to_usd AS cogs,
+		.02 AS cashback,
+		.09 AS gst_vat,
 		0 AS fee_rate,
-		c.packaging / fx.fx_to_usd AS packaging
+		c.packaging_cost / fx.fx_to_usd AS packaging
 	FROM finance_metrics.cod_sg_orders_all AS o
 	LEFT JOIN ref.fx_rates AS fx
 		ON o.currency = fx.currency
-	LEFT JOIN all_stripe.product_cost AS c
-		ON o.product_id = c.product_id
+	LEFT JOIN google_sheets.sg_product_cost_stripe AS c
+		ON o.product_id = c.id
 	LEFT JOIN all_stripe.product AS prod
 		ON o.product_id = prod.id
 )
