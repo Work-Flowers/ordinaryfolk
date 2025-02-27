@@ -5,6 +5,7 @@ WITH cm1 AS (
 	SELECT
 		region AS country,
 		DATE_TRUNC(purchase_date, MONTH) AS date,
+		purchase_type,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd)) AS amount,
 		SUM(cogs) AS cogs,
 		SUM(packaging) AS packaging,
@@ -14,7 +15,7 @@ WITH cm1 AS (
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * refund_rate) AS refunds
 	FROM finance_metrics.contribution_margin
 	WHERE purchase_type = 'Subscription'
-	GROUP BY 1,2
+	GROUP BY 1,2,3
 ),
 
 delivery AS (
