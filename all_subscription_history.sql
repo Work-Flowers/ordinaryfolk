@@ -28,10 +28,10 @@ sub_mrr AS (
 		pl.interval_count,
 		pl.product_id,
 		CASE 
-			WHEN pl.interval = 'month' THEN pl.amount * si.quantity / 100 / COALESCE(pl.interval_count, 1)
-			WHEN pl.interval = 'year' THEN pl.amount * si.quantity / 100 / (12 * COALESCE(pl.interval_count, 1))
-			WHEN pl.interval = 'week' THEN pl.amount * si.quantity / 100 * (52/ 12) / COALESCE(pl.interval_count, 1)
-			WHEN pl.interval = 'day' THEN pl.amount * si.quantity / 100 * (365 / 12)/ COALESCE(pl.interval_count, 1)
+			WHEN pl.interval = 'month' THEN pl.amount * si.quantity / COALESCE(subs.subunits, 100) / COALESCE(pl.interval_count, 1)
+			WHEN pl.interval = 'year' THEN pl.amount * si.quantity / COALESCE(subs.subunits, 100) / (12 * COALESCE(pl.interval_count, 1))
+			WHEN pl.interval = 'week' THEN pl.amount * si.quantity / COALESCE(subs.subunits, 100) * (52/ 12) / COALESCE(pl.interval_count, 1)
+			WHEN pl.interval = 'day' THEN pl.amount * si.quantity / COALESCE(subs.subunits, 100) * (365 / 12)/ COALESCE(pl.interval_count, 1)
 			ELSE 0
 			END AS subscription_mrr,
 		JSON_EXTRACT_SCALAR(pl.metadata, '$.boxes') AS n_boxes,
@@ -42,6 +42,8 @@ sub_mrr AS (
 		ON si.plan_id = pl.id
 	LEFT JOIN all_stripe.product AS prod
 		ON pl.product_id = prod.id
+	LEFT JOIN ref.stripe_currency_subunits AS subs
+		ON pl.currency = subs.currency
 	WHERE
 		si.quantity > 0
 ),

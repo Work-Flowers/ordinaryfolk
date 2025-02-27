@@ -23,7 +23,7 @@ scheduled AS (
   		AND o.status = 'pending_prescription'
 	INNER JOIN segment.tracks AS t
 		ON seg.message_id = t.message_id
-	GROUP BY 1,2
+	GROUP BY 1,2	
 )
 
 SELECT
@@ -31,10 +31,7 @@ SELECT
 	cc.country,
 	cc.n AS n_consultations_created,
 	scheduled.n AS consultations_scheduled
-	
 FROM consultations_created AS cc
 FULL OUTER JOIN scheduled
 	ON cc.date = scheduled.date
 	AND cc.country = scheduled.country	
-
-

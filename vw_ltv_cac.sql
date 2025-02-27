@@ -5,6 +5,7 @@ WITH all_mrr AS (
 	SELECT
 		region,
 		obs_date,
+		SUM(CASE WHEN lifecyle = 'New' THEN n_customers ELSE 0 END) AS n_new_customers,
 		SUM(current_mrr) AS current_mrr,
 		SUM(n_customers) AS current_n_customers
 	FROM finance_metrics.customer_lifecyle_monthly

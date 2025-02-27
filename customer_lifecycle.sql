@@ -37,4 +37,4 @@ SELECT
 		WHEN mrr_usd > lagged_mrr THEN 'MRR Expansion'
 		WHEN mrr_usd < lagged_mrr THEN 'MRR Contraction'
 		END AS segment
-FROM customers
+FROM customersœ
