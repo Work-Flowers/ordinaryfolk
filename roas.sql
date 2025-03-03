@@ -8,16 +8,21 @@ WITH revenue AS(
 	GROUP BY 1,2
 ),
 
-acq AS (
+monthly_cust_rev AS (
 	SELECT
-		purchase_date,
+		DATE_TRUNC(purchase_date, MONTH) AS purchase_month,
 		customer_id,
 		region AS country,
-		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd)) AS first_purchase
+		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd)) AS monthly_rev
 	FROM finance_metrics.contribution_margin
 	GROUP BY 1,2,3
-	QUALIFY ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY purchase_date) = 1
+	
+),
 
+acq AS (
+	SELECT *
+	FROM monthly_cust_rev
+	QUALIFY ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY purchase_month) = 1
 ),
 
 marketing AS (
@@ -35,12 +40,12 @@ SELECT
 	revenue.revenue,
 	marketing.spend AS marketing_spend,
 	COUNT(DISTINCT acq.customer_id) AS n_new_customers,
-	SUM(acq.first_purchase) AS first_purchase_revenue
+	SUM(acq.monthly_rev) AS first_purchase_revenue
 FROM revenue
 INNER JOIN marketing		
 	ON revenue.date = marketing.date
 	AND revenue.country = marketing.country
 LEFT JOIN acq
-	ON revenue.date = DATE_TRUNC(acq.purchase_date, MONTH)
+	ON revenue.date = acq.purchase_month
 	AND revenue.country = acq.country
 GROUP BY 1,2,3,4
