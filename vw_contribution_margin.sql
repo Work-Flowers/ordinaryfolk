@@ -122,8 +122,8 @@ shopee_data AS (
 		'Shopee' AS sales_channel,
 		'sg' AS region,
 		CAST(NULL AS STRING) AS type,
-		'One-Time' AS purchase_type,
-		'manual' AS billing_reason,
+		COALESCE(cttp.purchase_type, 'One-Time') AS purchase_type,
+		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
 		so.username_buyer_ AS customer_id,
 		CAST(NULL AS STRING) AS charge_id,
 		DATE(so.payout_completed_date) AS purchase_date,
@@ -148,6 +148,8 @@ shopee_data AS (
 	LEFT JOIN google_sheets.shopee_cogs AS sc
 		ON so.product_id = sc.product_id
 		AND q.sku_reference_no_ = sc.sku_reference_no_
+	LEFT JOIN google_sheets.condition_transaction_type_map AS cttp
+		ON sc.condition = cttp.condition
 ),
 
 sg_cod_data AS (
@@ -155,8 +157,8 @@ sg_cod_data AS (
 		'SG COD' AS sales_channel,
 		'sg' AS region,
 		CAST(NULL AS STRING) AS type,
-		'One-Time' AS purchase_type,
-		'manual' AS billing_reason,
+		COALESCE(cttp.purchase_type, 'One-Time') AS purchase_type,
+		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
 		o.email AS customer_id,
 		CAST(NULL AS STRING) AS charge_id,
 		o.date AS purchase_date,
@@ -180,6 +182,8 @@ sg_cod_data AS (
 		ON o.product_id = c.id
 	LEFT JOIN all_stripe.product AS prod
 		ON o.product_id = prod.id
+	LEFT JOIN google_sheets.condition_transaction_type_map AS cttp
+		ON JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') = cttp.condition
 )
 
 
