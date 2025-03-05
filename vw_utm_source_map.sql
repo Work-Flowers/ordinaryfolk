@@ -2,6 +2,7 @@ DROP VIEW IF EXISTS cac.utm_source_map;
 CREATE VIEW cac.utm_source_map AS
 
 SELECT DISTINCT
+	context_campaign_source,
 	CASE
 		WHEN LOWER(context_campaign_source) LIKE 'facebook%' THEN 'facebook_ads'
     	WHEN LOWER(context_campaign_source) LIKE 'fb%' THEN 'facebook_ads'
@@ -19,7 +20,6 @@ SELECT DISTINCT
     	WHEN LOWER(context_campaign_source) LIKE 'perplexity%' THEN 'perplexity'
     	WHEN LOWER(context_campaign_source) LIKE 'pornhub%' THEN 'pornhub'
     	WHEN LOWER(context_campaign_source) LIKE 'msg%' THEN 'msg'
-    	
     	WHEN LOWER(context_campaign_source) LIKE 'hk01%' THEN 'hk01'
     	ELSE context_campaign_source
     	END AS channel
