@@ -21,6 +21,7 @@ WITH stripe_data AS(
 		px.id AS price_id,
 		JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') AS condition,
 		COALESCE(ii.quantity, 1) AS quantity,
+		ch.currency,
 		ch.amount / (
 			CASE 
 				WHEN inv.subtotal > 0 THEN inv.subtotal
@@ -74,6 +75,7 @@ tiktok_data AS(
 		CAST(NULL AS STRING) AS price_id,
 		CAST(NULL AS STRING) AS condition,
 		tik.quantity,
+		LOWER(tik.currency) AS currency,
 		tik.revenue / fx.fx_to_usd AS line_item_amount_usd,
 		tik.quantity * tok.cogs / fx.fx_to_usd AS cogs,
 		0 AS cashback,
@@ -97,6 +99,7 @@ lazada_data AS (
 		o.seller_sku,
 		lc.cogs / fx.fx_to_usd AS cogs,
 		lc.packaging / fx.fx_to_usd AS packaging,
+		LOWER(o.currency) AS currency,
 		SUM(CASE WHEN o.transaction_type = 'Orders-Sales' THEN o.amount / fx.fx_to_usd ELSE 0 END) AS line_item_amount_usd,
 		SUM(CASE WHEN o.transaction_type LIKE 'Refunds%' THEN -o.amount / fx.fx_to_usd ELSE 0 END) AS refunds,
 		SUM(
@@ -114,7 +117,7 @@ lazada_data AS (
 		ON LOWER(o.currency) = fx.currency
 	LEFT JOIN google_sheets.lazada_cogs AS lc
 		ON o.seller_sku = lc.seller_sku
-	GROUP BY 1,2,3,4,5
+	GROUP BY 1,2,3,4,5,6
 ),
 
 shopee_data AS (
@@ -134,6 +137,7 @@ shopee_data AS (
 		CAST(NULL AS STRING) AS price_id,
 		sc.condition,
 		COALESCE(q.quantity, 1) AS quantity,
+		LOWER(so.currency) AS currency,
 		so.product_price / fx.fx_to_usd AS line_item_amount_usd,
 		sc.cogs / fx.fx_to_usd AS cogs,
 		0 AS cashback,
@@ -169,6 +173,7 @@ sg_cod_data AS (
 		CAST(NULL AS STRING) AS price_id,
 		JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') AS condition,
 		o.quantity,
+		o.currency,
 		o.purchase_amount / fx.fx_to_usd AS line_item_amount_usd,
 		c.cost_box / fx.fx_to_usd AS cogs,
 		.02 AS cashback,
@@ -219,6 +224,7 @@ SELECT
 	CAST(NULL AS STRING) AS price_id,
 	CAST(NULL AS STRING) AS condition,
 	0 AS quantity,
+	currency,
 	line_item_amount_usd,
 	cogs,
 	0 AS cashback,
