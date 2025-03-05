@@ -9,7 +9,8 @@ WITH signups AS (
         COUNT(s.message_id) AS n
     FROM segment.signed_up AS s
     INNER JOIN segment.tracks AS t ON s.message_id = t.message_id
-    LEFT JOIN cac.utm_source_map AS map ON s.utm_source = map.context_campaign_source
+    INNER JOIN cac.utm_source_map AS map 
+    	ON s.utm_source = map.context_campaign_source
     GROUP BY 1, 2, 3
 ),
 
@@ -21,7 +22,8 @@ q3_completions AS (
         COUNT(v.message_id) AS n
     FROM segment.viewed_4_th_question_of_eval AS v
     INNER JOIN segment.tracks AS t ON v.message_id = t.message_id
-    LEFT JOIN cac.utm_source_map AS map ON v.utm_source = map.context_campaign_source
+    INNER JOIN cac.utm_source_map AS map 
+    	ON v.utm_source = map.context_campaign_source
     GROUP BY 1, 2, 3
 ),
 
@@ -33,7 +35,8 @@ checkouts AS (
         COUNT(c.message_id) AS n
     FROM segment.checkout_completed AS c
     INNER JOIN segment.tracks AS t ON c.message_id = t.message_id
-    LEFT JOIN cac.utm_source_map AS map ON c.utm_source = map.context_campaign_source
+    INNER JOIN cac.utm_source_map AS map 
+    	ON c.utm_source = map.context_campaign_source
     GROUP BY 1, 2, 3
 ),
 
@@ -98,4 +101,6 @@ LEFT JOIN q3_completions AS q
     ON k.date = q.date AND k.country = q.country AND k.channel = q.channel
 LEFT JOIN checkouts AS cc
     ON k.date = cc.date AND k.country = cc.country AND k.channel = cc.channel
-WHERE k.date >= '2025-01-27';
+WHERE 
+	k.date >= '2025-01-27'
+	AND k.country IS NOT NULL;
