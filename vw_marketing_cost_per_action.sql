@@ -22,7 +22,7 @@ q3_completions AS (
         COUNT(v.message_id) AS n
     FROM segment.viewed_4_th_question_of_eval AS v
     INNER JOIN segment.tracks AS t ON v.message_id = t.message_id
-    INNER JOIN cac.utm_source_map AS map 
+    LEFT JOIN cac.utm_source_map AS map 
     	ON v.utm_source = map.context_campaign_source
     GROUP BY 1, 2, 3
 ),
@@ -49,6 +49,21 @@ marketing_spend AS (
     FROM cac.marketing_spend
 ),
 
+consults AS (
+	SELECT
+		DATE(appt.date) AS date,
+		appt.region AS country,
+		map.channel,
+		COUNT(DISTINCT appt.sys_id) AS n
+	FROM all_postgres.acuity_appointment_latest AS appt
+	LEFT JOIN all_postgres.order_acuity_appointment AS oaa
+		ON appt.sys_id = oaa.acuityappointmentsysid
+	LEFT JOIN all_postgres.order AS o
+		ON oaa.ordersysid = o.sys_id
+	LEFT JOIN cac.utm_source_map AS map
+		ON JSON_EXTRACT_SCALAR(o.utm, '$.utmSource') = map.context_campaign_source
+	GROUP BY 1,2,3
+),
 -- Step 1: Create a superset of all (date, country, channel) combinations
 all_keys AS (
     
@@ -81,6 +96,15 @@ all_keys AS (
     	country, 
     	channel 
 	FROM marketing_spend
+	
+	UNION DISTINCT
+	
+	SELECT DISTINCT 
+    	date, 
+    	country, 
+    	channel 
+	FROM consults
+	
 )
 
 -- Step 2: Perform FULL OUTER JOINS using the superset as the base
@@ -91,16 +115,29 @@ SELECT
     COALESCE(ms.cost_usd, 0) AS cost_usd,
     COALESCE(sup.n, 0) AS n_signups,
     COALESCE(q.n, 0) AS n_q3_completions,
-    COALESCE(cc.n, 0) AS n_checkouts_completed
+    COALESCE(cc.n, 0) AS n_checkouts_completed,
+    COALESCE(cons.n, 0) AS n_consults
 FROM all_keys k
 LEFT JOIN marketing_spend AS ms
-    ON k.date = ms.date AND k.country = ms.country AND k.channel = ms.channel
+    ON k.date = ms.date 
+    AND k.country = ms.country 
+    AND k.channel = ms.channel
 LEFT JOIN signups AS sup
-    ON k.date = sup.date AND k.country = sup.country AND k.channel = sup.channel
+    ON k.date = sup.date 
+    AND k.country = sup.country 
+    AND k.channel = sup.channel
 LEFT JOIN q3_completions AS q
-    ON k.date = q.date AND k.country = q.country AND k.channel = q.channel
+    ON k.date = q.date 
+    AND k.country = q.country 
+    AND k.channel = q.channel
 LEFT JOIN checkouts AS cc
-    ON k.date = cc.date AND k.country = cc.country AND k.channel = cc.channel
+    ON k.date = cc.date 
+    AND k.country = cc.country 
+    AND k.channel = cc.channel
+LEFT JOIN consults AS cons
+    ON k.date = cons.date 
+    AND k.country = cons.country 
+    AND k.channel = cons.channel
 WHERE 
 	k.date >= '2025-01-27'
 	AND k.country IS NOT NULL;
