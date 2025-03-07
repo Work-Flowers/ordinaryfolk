@@ -5,7 +5,20 @@ SELECT
 	-- original columns
 	ap.*,
 	
-	-- INT64 values
+    -- Top-level fields
+    JSON_VALUE(webhook_payload, '$.currency') AS currency,
+    JSON_VALUE(webhook_payload, '$.redirectUrl') AS redirectUrl,
+    JSON_VALUE(webhook_payload, '$.referenceId') AS referenceId,
+    CAST(JSON_VALUE(webhook_payload, '$.refundableAmount') AS INT64) AS refundableAmount,
+    JSON_VALUE(webhook_payload, '$.merchantReferenceId') AS merchantReferenceId,
+
+    -- Extracting nested fields from paymentTransaction
+    CAST(JSON_VALUE(webhook_payload, '$.paymentTransaction.tenor') AS INT64) AS payment_tenor,
+    JSON_VALUE(webhook_payload, '$.paymentTransaction.orderId') AS orderId,
+    CAST(JSON_VALUE(webhook_payload, '$.paymentTransaction.createAt') AS INT64) AS payment_createAt,
+    JSON_VALUE(webhook_payload, '$.paymentTransaction.transactionId') AS payment_transactionId,
+
+    -- Extracting other JSON fields from summary as before
     CAST(JSON_VALUE(summary, '$.total') AS INT64) AS total,
     CAST(JSON_VALUE(summary, '$.mainTax') AS INT64) AS mainTax,
     CAST(JSON_VALUE(summary, '$.subTotal') AS INT64) AS subTotal,
@@ -29,8 +42,9 @@ SELECT
     CAST(JSON_VALUE(summary, '$.isConsult') AS BOOL) AS isConsult,
     CAST(JSON_VALUE(summary, '$.shouldChargeConsultFee') AS BOOL) AS shouldChargeConsultFee,
 
-    -- String values (no need to cast)
+    -- String values
     JSON_VALUE(summary, '$.priceId') AS priceId,
     JSON_VALUE(summary, '$.paymentIntentSummary.Teleconsultation') AS paymentIntent_Teleconsultation,
     JSON_VALUE(summary, '$.paymentIntentSummary.paymentIntentPriceId') AS paymentIntent_PriceId
+
 FROM sg_postgres_rds_public.atome_payments AS ap
