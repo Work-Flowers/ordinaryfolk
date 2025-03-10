@@ -48,6 +48,7 @@ SELECT
 	'google_ads' AS channel,
 	s.date,
 	google_campaigns.name AS campaign_name,
+	ccm.`condition`,
 	a.currency_code,
 	g.country_code,
 	NULL AS reach,
@@ -67,7 +68,9 @@ LEFT JOIN ga_account_currency AS a
 	ON s.customer_id = a.account_id
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(a.currency_code) = fx.currency
-GROUP BY 1,2,3,4,5,6
+LEFT JOIN google_sheets.campaign_condition_map AS ccm
+	ON google_campaigns.name = ccm.campaign_name
+GROUP BY 1,2,3,4,5,6,7
 
 UNION ALL
 
@@ -75,6 +78,7 @@ SELECT
 	'facebook_ads' AS channel,
 	d.date,
 	d.campaign_name,
+	ccm.condition,
 	a.currency AS currency_code,
     REGEXP_REPLACE(ash.targeting_geo_locations_countries, r'[\[\]"]', '') AS country_code,
 	SUM(d.reach) AS reach,
@@ -89,9 +93,11 @@ LEFT JOIN fb_account_currency AS a
 	ON CAST(d.account_id AS STRING) = a.account_id
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(a.currency) = fx.currency
+LEFT JOIN google_sheets.campaign_condition_map AS ccm
+	ON d.campaign_name = ccm.campaign_name
 WHERE
     (d.reach > 0 OR d.ctr > 0 or d.spend > 0)
-GROUP BY 1,2,3,4,5
+GROUP BY 1,2,3,4,5,6
 
 UNION ALL
 
@@ -99,6 +105,7 @@ SELECT
 	'taboola' AS channel,
 	plat.date,
 	tc.name AS campaign_name,
+	ccm.condition,
 	plat.currency AS currency_code,
 	tgt.value AS country_code,
 	SUM(0) AS reach,
@@ -113,4 +120,6 @@ LEFT JOIN taboola.targeting_country	AS tgt
 	ON plat.campaign_id = tgt.campaign_id
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(plat.currency) = LOWER(fx.currency)
-GROUP BY 1,2,3,4,5
+LEFT JOIN google_sheets.campaign_condition_map AS ccm
+	ON tc.name = ccm.campaign_name
+GROUP BY 1,2,3,4,5,6
