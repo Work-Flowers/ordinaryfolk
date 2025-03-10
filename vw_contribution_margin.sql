@@ -28,7 +28,7 @@ WITH stripe_data AS(
 				WHEN inv.subtotal > 0 THEN inv.subtotal
 				ELSE ch.amount
 				END
-			) * px.unit_amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS line_item_amount_usd,
+			) * ii.amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS line_item_amount_usd,
 		pc.cogs / fx.fx_to_usd AS cogs,
 		pc.cashback,
 		pc.gst_vat,
