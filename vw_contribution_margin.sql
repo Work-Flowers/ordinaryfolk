@@ -12,6 +12,7 @@ WITH stripe_data AS(
 			END AS purchase_type,
 		COALESCE(inv.billing_reason, 'manual') AS billing_reason,
 		ch.customer_id,
+		cust.email,
 		ch.id AS charge_id,
 		ch.payment_intent_id,
 		inv.subscription_id,
@@ -36,6 +37,8 @@ WITH stripe_data AS(
 		COALESCE(bt.fee / bt.amount, 0) AS fee_rate,
 		pc.packaging / fx.fx_to_usd AS packaging
 	FROM all_stripe.charge AS ch
+	LEFT JOIN all_stripe.customer AS cust
+		ON ch.customer_id = cust.id
 	INNER JOIN all_stripe.payment_intent AS pi
 		ON ch.payment_intent_id = pi.id
 	LEFT JOIN all_postgres.order AS o
@@ -70,6 +73,7 @@ tiktok_data AS(
 		'One-Time' AS purchase_type,
 		'manual' AS billing_reason,
 		tik.buyer_username AS customer_id,
+		CAST(NULL AS STRING) AS email,
 		CAST(tik.order_id AS STRING) AS charge_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
@@ -134,6 +138,7 @@ shopee_data AS (
 		COALESCE(cttp.purchase_type, 'One-Time') AS purchase_type,
 		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
 		so.username_buyer_ AS customer_id,
+		CAST(NULL AS STRING) AS email,
 		CAST(NULL AS STRING) AS charge_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
@@ -173,6 +178,7 @@ sg_cod_data AS (
 		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
 		o.email AS customer_id,
 		CAST(NULL AS STRING) AS charge_id,
+		o.email,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		o.date AS purchase_date,
@@ -225,6 +231,7 @@ SELECT
 	'One-Time' AS purchase_type,
 	'manual' AS billing_reason,
 	CAST(NULL AS STRING) AS customer_id,
+	CAST(NULL AS STRING) AS email,
 	CAST(NULL AS STRING) AS charge_id,
 	CAST(NULL AS STRING) AS payment_intent_id,
 	CAST(NULL AS STRING) AS subscription_id,
