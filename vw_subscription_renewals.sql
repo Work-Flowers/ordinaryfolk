@@ -1,5 +1,5 @@
 DROP VIEW IF EXISTS all_stripe.subscription_renewals;
-CREATE VIEW all_stripe.subscription_renewal AS 
+CREATE VIEW all_stripe.subscription_renewals AS 
 
 WITH sub_starts AS (
 	SELECT DISTINCT
