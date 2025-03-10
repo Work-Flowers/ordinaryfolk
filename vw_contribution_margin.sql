@@ -13,6 +13,7 @@ WITH stripe_data AS(
 		COALESCE(inv.billing_reason, 'manual') AS billing_reason,
 		ch.customer_id,
 		ch.id AS charge_id,
+		ch.payment_intent_id,
 		inv.subscription_id,
 		DATE(ch.created) AS purchase_date,
 		ch.amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS total_charge_amount_usd,
@@ -37,6 +38,8 @@ WITH stripe_data AS(
 	FROM all_stripe.charge AS ch
 	INNER JOIN all_stripe.payment_intent AS pi
 		ON ch.payment_intent_id = pi.id
+	LEFT JOIN all_postgres.order AS o
+		ON ch.payment_intent_id = o.stripe_payment_intent_id
 	INNER JOIN all_stripe.balance_transaction AS bt
 		ON ch.balance_transaction_id = bt.id
 	INNER JOIN ref.fx_rates AS fx
@@ -68,6 +71,7 @@ tiktok_data AS(
 		'manual' AS billing_reason,
 		tik.buyer_username AS customer_id,
 		CAST(tik.order_id AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		tik.created_time AS purchase_date,
 		0 AS total_charge_amount_usd,
@@ -131,6 +135,7 @@ shopee_data AS (
 		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
 		so.username_buyer_ AS customer_id,
 		CAST(NULL AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		DATE(so.payout_completed_date) AS purchase_date,
 		0 AS total_charge_amount_usd,
@@ -168,6 +173,7 @@ sg_cod_data AS (
 		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
 		o.email AS customer_id,
 		CAST(NULL AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		o.date AS purchase_date,
 		o.purchase_amount / fx.fx_to_usd AS total_charge_amount_usd,
@@ -220,6 +226,7 @@ SELECT
 	'manual' AS billing_reason,
 	CAST(NULL AS STRING) AS customer_id,
 	CAST(NULL AS STRING) AS charge_id,
+	CAST(NULL AS STRING) AS payment_intent_id,
 	CAST(NULL AS STRING) AS subscription_id,
 	purchase_date,
 	0 AS total_charge_amount_usd,
