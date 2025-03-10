@@ -34,11 +34,20 @@ fb_ash AS (
 	SELECT *
 	FROM facebook_ads.ad_set_history
 	QUALIFY ROW_NUMBER() OVER(PARTITION BY id ORDER BY updated_time DESC) = 1
+),
+
+google_campaigns AS (
+	SELECT
+		ch.id,
+		ch.name
+	FROM google_ads.campaign_history AS ch
+	QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY ch.updated_at DESC) = 1
 )
 
 SELECT
 	'google_ads' AS channel,
 	s.date,
+	google_campaigns.name AS campaign_name,
 	a.currency_code,
 	g.country_code,
 	NULL AS reach,
@@ -47,22 +56,25 @@ SELECT
 	-- Convert micros to standard currency
 	SUM(s.cost_micros) / 1000000 AS cost_local, 	
 	SUM(s.cost_micros / fx.fx_to_usd) / 1000000 AS cost_usd 
-FROM google_ads.ad_stats AS s
+FROM google_ads.campaign_stats AS s
 LEFT JOIN ga_targeting AS c
-	ON s.campaign_id = c.campaign_id
+	ON s.id = c.campaign_id
+LEFT JOIN google_campaigns
+	ON s.id = google_campaigns.id
 LEFT JOIN google_ads.geo_target AS g
 	ON c.geo_target_constant_id = g.id
 LEFT JOIN ga_account_currency AS a
 	ON s.customer_id = a.account_id
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(a.currency_code) = fx.currency
-GROUP BY 1,2,3,4,5
+GROUP BY 1,2,3,4,5,6
 
 UNION ALL
 
 SELECT
 	'facebook_ads' AS channel,
 	d.date,
+	d.campaign_name,
 	a.currency AS currency_code,
     REGEXP_REPLACE(ash.targeting_geo_locations_countries, r'[\[\]"]', '') AS country_code,
 	SUM(d.reach) AS reach,
@@ -79,13 +91,14 @@ LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(a.currency) = fx.currency
 WHERE
     (d.reach > 0 OR d.ctr > 0 or d.spend > 0)
-GROUP BY 1,2,3,4
+GROUP BY 1,2,3,4,5
 
 UNION ALL
 
 SELECT
 	'taboola' AS channel,
 	plat.date,
+	tc.name AS campaign_name,
 	plat.currency AS currency_code,
 	tgt.value AS country_code,
 	SUM(0) AS reach,
@@ -94,8 +107,10 @@ SELECT
 	SUM(plat.spent) AS cost_local,
 	SUM(plat.spent / fx.fx_to_usd) AS cost_usd
 FROM taboola.platform_report AS plat
+LEFT JOIN taboola.campaign AS tc
+	ON plat.campaign_id = tc.id
 LEFT JOIN taboola.targeting_country	AS tgt
 	ON plat.campaign_id = tgt.campaign_id
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(plat.currency) = LOWER(fx.currency)
-GROUP BY 1,2,3,4
+GROUP BY 1,2,3,4,5
