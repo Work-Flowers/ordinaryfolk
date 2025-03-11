@@ -264,5 +264,5 @@ SELECT
 	CASE 
 		WHEN purchase_date <= DATE_ADD(acquisition_date, INTERVAL 7 DAY) THEN 'New'
 		WHEN acquisition_date IS NOT NULL THEN 'Existing'
-		END AS customer_category 
+		END AS new_existing
 FROM unioned_data

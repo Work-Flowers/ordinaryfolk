@@ -64,6 +64,26 @@ consults AS (
 		ON JSON_EXTRACT_SCALAR(o.utm, '$.utmSource') = map.context_campaign_source
 	GROUP BY 1,2,3
 ),
+
+customer_history AS (
+	
+	SELECT
+		cm.customer_id,
+		cm.purchase_date AS first_purchase_date,
+		cm.charge_id,
+		cm.product_name AS first_product,
+		LEAD(cm.product_name, 1) OVER(PARTITION BY customer_id ORDER BY purchase_date) AS second_product,
+		COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd) AS first_revenue,
+		LEAD(COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd), 1) OVER (PARTITION BY customer_id ORDER BY purchase_date) AS second_revenue,
+		ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY purchase_date) AS row
+		 
+	FROM finance_metrics.contribution_margin AS cm
+	LEFT JOIN all_postgres.order AS o
+		ON cm.pay
+	WHERE cm.customer_id IS NOT NULL
+	QUALIFY ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY purchase_date) <= 2
+	ORDER BY 1,2
+)
 -- Step 1: Create a superset of all (date, country, channel) combinations
 all_keys AS (
     

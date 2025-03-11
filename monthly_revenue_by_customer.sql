@@ -9,6 +9,7 @@ SELECT
 	DATE_TRUNC(cm.purchase_date, MONTH) AS purchase_month,
 	cm.sales_channel,
 	cm.region,
+	cm.new_existing,
 	cm.customer_id,
 	cm.charge_id,
 	cm.subscription_id,
@@ -24,4 +25,4 @@ LEFT JOIN sub_starts
 	ON cm.subscription_id = sub_starts.subscription_id
 WHERE
 	1 = 1
-GROUP BY 1,2,3,4,5,6,7,8,9,10,11
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12
