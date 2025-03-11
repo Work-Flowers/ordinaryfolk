@@ -266,4 +266,3 @@ SELECT
 		WHEN acquisition_date IS NOT NULL THEN 'Existing'
 		END AS customer_category 
 FROM unioned_data
-LIMIT 500
