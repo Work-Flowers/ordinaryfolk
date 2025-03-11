@@ -35,7 +35,8 @@ WITH stripe_data AS(
 		pc.cashback,
 		pc.gst_vat,
 		COALESCE(bt.fee / bt.amount, 0) AS fee_rate,
-		pc.packaging / fx.fx_to_usd AS packaging
+		pc.packaging / fx.fx_to_usd AS packaging,
+		MIN(DATE(ch.created)) OVER(PARTITION BY ch.customer_id) AS acquisition_date
 	FROM all_stripe.charge AS ch
 	LEFT JOIN all_stripe.customer AS cust
 		ON ch.customer_id = cust.id
@@ -93,6 +94,7 @@ tiktok_data AS(
 		-- fees entered as a negative number in TikTok Orders google sheet (https://docs.google.com/spreadsheets/d/1_XWOXag-iUo8BHjDh7-5pgwhv3rcFU1xG62TCRIIO6A/edit?gid=571245014#gid=571245014)
 		-COALESCE(tik.payment_gateway_fee / tik.revenue, 0) AS fee_rate,
 		tok.packaging / fx.fx_to_usd AS packaging,
+		MIN(DATE(tik.created_time)) OVER(PARTITION BY tik.buyer_username) AS acquisition_date
 	FROM google_sheets.tiktok_orders AS tik
 	LEFT JOIN google_sheets.tiktok_cogs AS tok
 		ON tik.sku_id = tok.sku_id
@@ -156,7 +158,8 @@ shopee_data AS (
 		0 AS cashback,
 		sc.gst_vat,
 		-(so.commission_fee_incl_gst_ + so.ps_finance_pdf_income_service_fee_for_sg + so.transaction_fee_incl_gst_ + so.ams_commission_fee) / GREATEST(so.product_price, 1) AS fee_rate,
-		sc.packaging / fx.fx_to_usd AS packaging
+		sc.packaging / fx.fx_to_usd AS packaging,
+		MIN(DATE(so.payout_completed_date)) OVER(PARTITION BY so.username_buyer_) AS acquisition_date
 	FROM google_sheets.shopee_orders AS so
 	LEFT JOIN ref.fx_rates AS fx
 		ON LOWER(so.currency) = fx.currency
@@ -195,7 +198,8 @@ sg_cod_data AS (
 		.02 AS cashback,
 		.09 AS gst_vat,
 		0 AS fee_rate,
-		c.packaging_cost / fx.fx_to_usd AS packaging
+		c.packaging_cost / fx.fx_to_usd AS packaging,
+		MIN(o.date) OVER(PARTITION BY o.email) AS acquisition_date
 	FROM finance_metrics.cod_sg_orders_all AS o
 	LEFT JOIN ref.fx_rates AS fx
 		ON o.currency = fx.currency
@@ -249,6 +253,7 @@ SELECT
 	0 AS cashback,
 	0 AS gst_vat,
 	fees / line_item_amount_usd AS fee_rate,
-	packaging
+	packaging,
+	CAST(NULL AS DATE) AS acquisition_date
 FROM lazada_data
 WHERE line_item_amount_usd > 0
