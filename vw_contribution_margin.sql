@@ -209,51 +209,61 @@ sg_cod_data AS (
 		ON o.product_id = prod.id
 	LEFT JOIN google_sheets.condition_transaction_type_map AS cttp
 		ON JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') = cttp.condition
+),
+
+unioned_data AS (
+	SELECT * FROM stripe_data
+	
+	UNION ALL
+	
+	SELECT * FROM tiktok_data
+	
+	UNION ALL
+	
+	SELECT * FROM shopee_data
+	
+	UNION ALL
+	
+	SELECT * FROM sg_cod_data
+	
+	UNION ALL
+
+	SELECT
+		'Lazada' AS sales_channel,
+		'sg' AS region,
+		CAST(NULL AS STRING) AS type,
+		'One-Time' AS purchase_type,
+		'manual' AS billing_reason,
+		CAST(NULL AS STRING) AS customer_id,
+		CAST(NULL AS STRING) AS email,
+		CAST(NULL AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS payment_intent_id,
+		CAST(NULL AS STRING) AS subscription_id,
+		purchase_date,
+		0 AS total_charge_amount_usd,
+		refunds / line_item_amount_usd AS refund_rate,
+		seller_sku AS product_id,
+		product_name,
+		CAST(NULL AS STRING) AS price_id,
+		CAST(NULL AS STRING) AS condition,
+		0 AS quantity,
+		currency,
+		line_item_amount_usd,
+		cogs,
+		0 AS cashback,
+		0 AS gst_vat,
+		fees / line_item_amount_usd AS fee_rate,
+		packaging,
+		CAST(NULL AS DATE) AS acquisition_date
+	FROM lazada_data
+	WHERE line_item_amount_usd > 0
 )
 
-
-SELECT * FROM stripe_data
-
-UNION ALL
-
-SELECT * FROM tiktok_data
-
-UNION ALL
-
-SELECT * FROM shopee_data
-
-UNION ALL
-
-SELECT * FROM sg_cod_data
-
-UNION ALL
-
 SELECT
-	'Lazada' AS sales_channel,
-	'sg' AS region,
-	CAST(NULL AS STRING) AS type,
-	'One-Time' AS purchase_type,
-	'manual' AS billing_reason,
-	CAST(NULL AS STRING) AS customer_id,
-	CAST(NULL AS STRING) AS email,
-	CAST(NULL AS STRING) AS charge_id,
-	CAST(NULL AS STRING) AS payment_intent_id,
-	CAST(NULL AS STRING) AS subscription_id,
-	purchase_date,
-	0 AS total_charge_amount_usd,
-	refunds / line_item_amount_usd AS refund_rate,
-	seller_sku AS product_id,
-	product_name,
-	CAST(NULL AS STRING) AS price_id,
-	CAST(NULL AS STRING) AS condition,
-	0 AS quantity,
-	currency,
-	line_item_amount_usd,
-	cogs,
-	0 AS cashback,
-	0 AS gst_vat,
-	fees / line_item_amount_usd AS fee_rate,
-	packaging,
-	CAST(NULL AS DATE) AS acquisition_date
-FROM lazada_data
-WHERE line_item_amount_usd > 0
+	unioned_data.*,
+	CASE 
+		WHEN purchase_date <= DATE_ADD(acquisition_date, INTERVAL 7 DAY) THEN 'New'
+		WHEN acquisition_date IS NOT NULL THEN 'Existing'
+		END AS customer_category 
+FROM unioned_data
+LIMIT 500
