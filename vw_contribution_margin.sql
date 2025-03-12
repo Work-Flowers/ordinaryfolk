@@ -1,7 +1,14 @@
 DROP VIEW IF EXISTS finance_metrics.contribution_margin; 
 CREATE VIEW finance_metrics.contribution_margin AS
 
-WITH stripe_data AS(
+WITH sub_starts AS (
+	SELECT DISTINCT
+		id AS subscription_id,
+		DATE(created) AS create_date
+	FROM all_stripe.subscription_history
+),
+
+stripe_data AS (
 	SELECT
 		'Stripe' AS sales_channel,
 		ch.region,
@@ -264,5 +271,8 @@ SELECT
 	CASE 
 		WHEN purchase_date <= DATE_ADD(acquisition_date, INTERVAL 7 DAY) THEN 'New'
 		WHEN acquisition_date IS NOT NULL THEN 'Existing'
-		END AS new_existing
+		END AS new_existing,
+	sub_starts.create_date AS subscription_created_date
 FROM unioned_data
+LEFT JOIN sub_starts
+	ON unioned_data.subscription_id = sub_starts.subscription_id
