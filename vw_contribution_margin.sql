@@ -1,5 +1,5 @@
--- DROP VIEW IF EXISTS finance_metrics.contribution_margin; 
--- CREATE VIEW finance_metrics.contribution_margin AS
+DROP VIEW IF EXISTS finance_metrics.contribution_margin; 
+CREATE VIEW finance_metrics.contribution_margin AS
 
 WITH sub_starts AS (
 	SELECT DISTINCT
