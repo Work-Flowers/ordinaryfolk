@@ -24,7 +24,7 @@ SELECT
 	landing.date,
 	landing.region,
 	landing.n_users AS n_landing,
-	upgrades.n_users AS n_upgrades
+	COALESCE(upgrades.n_users, 0) AS n_upgrades
 FROM landing
 LEFT JOIN upgrades
 	ON landing.date = upgrades.date
