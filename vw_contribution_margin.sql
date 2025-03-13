@@ -1,5 +1,5 @@
-DROP VIEW IF EXISTS finance_metrics.contribution_margin; 
-CREATE VIEW finance_metrics.contribution_margin AS
+-- DROP VIEW IF EXISTS finance_metrics.contribution_margin; 
+-- CREATE VIEW finance_metrics.contribution_margin AS
 
 WITH sub_starts AS (
 	SELECT DISTINCT
@@ -218,6 +218,123 @@ sg_cod_data AS (
 		ON JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') = cttp.condition
 ),
 
+atome_local AS (
+	SELECT
+		patientsysid AS customer_id,
+		CAST(external_platform_id AS STRING) AS charge_id,
+		created_at AS purchase_date,
+		'sgd' AS currency,
+		JSON_VALUE(prod.metadata, '$.condition') AS condition,
+		px.product_id,
+		prod.name AS product_name,
+		px.id AS price_id,
+		atome_status,
+		amount / 100 AS amount_local,
+		CASE 
+			WHEN shouldChargeConsultFee IS TRUE THEN `consultFee` / 100 
+			ELSE 0
+			END AS consult_fee_local
+	FROM all_postgres.atome_parsed AS ap
+	LEFT JOIN all_stripe.price AS px
+		ON ap.price_id = px.id
+	LEFT JOIN all_stripe.product AS prod
+		ON px.product_id = prod.id
+	WHERE 
+		ap.atome_status IN ('paid', 'refunded')	
+),
+
+atome_usd AS (
+	SELECT
+		ar.customer_id,
+		ar.charge_id,
+		ar.purchase_date,
+		ar.currency,
+		ar.amount_local / fx.fx_to_usd AS total_charge_amount_usd,
+		consult_fee_local / fx.fx_to_usd AS consult_fee_usd,
+		CASE WHEN atome_status = 'refunded' THEN amount_local ELSE 0 END / amount_local AS refund_rate,
+		ar.product_id,
+		ar.product_name,
+		ar.price_id,
+		ar.condition,
+		MIN(ar.purchase_date) OVER (PARTITION BY ar.customer_id) AS acquisition_date
+	FROM atome_local AS ar
+	LEFT JOIN ref.fx_rates AS fx
+		ON ar.currency = fx.currency
+),
+
+atome_unioned AS (
+	
+	SELECT
+		customer_id,
+		charge_id,
+		purchase_date,
+		currency,
+		total_charge_amount_usd - consult_fee_usd AS total_charge_amount_usd,
+		refund_rate,
+		product_id,
+		product_name,
+		price_id,
+		condition,
+		acquisition_date
+	FROM atome_usd
+	
+	UNION ALL
+	
+	SELECT
+		customer_id,
+		charge_id,
+		purchase_date,
+		currency,
+		consult_fee_usd AS total_charge_amount_usd,
+		refund_rate,
+		'prod_JDp75SMVPAOeGB' AS product_id,
+		'Teleconsultation' AS product_name,
+		price_id,
+		'Services' AS condition,
+		acquisition_date
+	FROM atome_usd
+	WHERE consult_fee_usd > 0
+	
+), 
+
+atome_final AS (
+	SELECT
+		'Atome' AS sales_channel,
+		'sg' AS region,
+		CAST(NULL AS STRING) AS type,
+		'One-Time' purchase_type,
+		'manual' AS billing_reason,
+		a.customer_id,
+		CAST(NULL AS STRING) AS email,
+		a.charge_id,
+		CAST(NULL AS STRING) AS payment_intent_id,
+		CAST(NULL AS STRING) AS subscription_id,
+		a.purchase_date,
+		a.total_charge_amount_usd,
+		a.refund_rate,
+		a.product_id,
+		a.product_name,
+		a.price_id,
+		a.condition,
+		1 AS quantity,
+		a.currency,
+		a.total_charge_amount_usd AS line_item_amount_usd,
+		pc.cogs / fx.fx_to_usd AS cogs,
+		pc.cashback,
+		t.rate AS gst_vat,
+		0 AS fee_rate,
+		pc.packaging / fx.fx_to_usd AS packaging,
+		a.acquisition_date
+	FROM atome_unioned AS a
+	LEFT JOIN ref.fx_rates AS fx
+		ON a.currency = fx.currency
+	LEFT JOIN all_stripe.product_cost AS pc
+		ON a.price_id = pc.price_id
+	LEFT JOIN ref.tax_rate_history AS t
+		ON t.region = 'sg'
+		AND a.purchase_date BETWEEN t.from_date AND t.to_date
+),
+
 unioned_data AS (
 	SELECT * FROM stripe_data
 	
@@ -264,6 +381,10 @@ unioned_data AS (
 		CAST(NULL AS DATE) AS acquisition_date
 	FROM lazada_data
 	WHERE line_item_amount_usd > 0
+	
+	UNION ALL
+	
+	SELECT * FROM atome_final
 )
 
 SELECT
