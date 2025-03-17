@@ -40,7 +40,7 @@ stripe_data AS (
 			) * ii.amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS line_item_amount_usd,
 		pc.cogs / fx.fx_to_usd AS cogs,
 		pc.cashback,
-		pc.gst_vat,
+		t.rate AS gst_vat,
 		COALESCE(bt.fee / bt.amount, 0) AS fee_rate,
 		pc.packaging / fx.fx_to_usd AS packaging,
 		MIN(DATE(ch.created)) OVER(PARTITION BY ch.customer_id) AS acquisition_date
@@ -68,6 +68,9 @@ stripe_data AS (
 		ON px.product_id = prod.id
 	LEFT JOIN all_stripe.product_cost AS pc
 		ON px.id = pc.price_id
+	LEFT JOIN ref.tax_rate_history AS t
+		ON ch.region = t.region
+		AND DATE(ch.created)  BETWEEN t.from_date AND t.to_date
 	WHERE
 		ch.status = 'succeeded'
 ),
@@ -97,7 +100,7 @@ tiktok_data AS(
 		tik.revenue / fx.fx_to_usd AS line_item_amount_usd,
 		tik.quantity * tok.cogs / fx.fx_to_usd AS cogs,
 		0 AS cashback,
-		0 AS gst_vat,
+		t.rate AS gst_vat,
 		-- fees entered as a negative number in TikTok Orders google sheet (https://docs.google.com/spreadsheets/d/1_XWOXag-iUo8BHjDh7-5pgwhv3rcFU1xG62TCRIIO6A/edit?gid=571245014#gid=571245014)
 		-COALESCE(tik.payment_gateway_fee / tik.revenue, 0) AS fee_rate,
 		tok.packaging / fx.fx_to_usd AS packaging,
@@ -107,6 +110,9 @@ tiktok_data AS(
 		ON tik.sku_id = tok.sku_id
 	LEFT JOIN ref.fx_rates AS fx
 		ON LOWER(tik.currency) = LOWER(fx.currency)
+	LEFT JOIN ref.tax_rate_history AS t
+		ON t.region = 'sg'
+		AND tik.created_time BETWEEN t.from_date AND t.to_date
 	WHERE
 		tik.revenue > 0
 ),
@@ -163,7 +169,7 @@ shopee_data AS (
 		so.product_price / fx.fx_to_usd AS line_item_amount_usd,
 		sc.cogs / fx.fx_to_usd AS cogs,
 		0 AS cashback,
-		sc.gst_vat,
+		t.rate AS gst_vat,
 		-(so.commission_fee_incl_gst_ + so.ps_finance_pdf_income_service_fee_for_sg + so.transaction_fee_incl_gst_ + so.ams_commission_fee) / GREATEST(so.product_price, 1) AS fee_rate,
 		sc.packaging / fx.fx_to_usd AS packaging,
 		MIN(DATE(so.payout_completed_date)) OVER(PARTITION BY so.username_buyer_) AS acquisition_date
@@ -177,6 +183,9 @@ shopee_data AS (
 		AND q.sku_reference_no_ = sc.sku_reference_no_
 	LEFT JOIN google_sheets.condition_transaction_type_map AS cttp
 		ON sc.condition = cttp.condition
+	LEFT JOIN ref.tax_rate_history AS t
+		ON t.region = 'sg'
+		AND DATE(so.payout_completed_date) BETWEEN t.from_date AND t.to_date
 ),
 
 sg_cod_data AS (
@@ -203,7 +212,7 @@ sg_cod_data AS (
 		o.purchase_amount / fx.fx_to_usd AS line_item_amount_usd,
 		c.cost_box / fx.fx_to_usd AS cogs,
 		.02 AS cashback,
-		.09 AS gst_vat,
+		t.rate AS gst_vat,
 		0 AS fee_rate,
 		c.packaging_cost / fx.fx_to_usd AS packaging,
 		MIN(o.date) OVER(PARTITION BY o.email) AS acquisition_date
@@ -216,6 +225,9 @@ sg_cod_data AS (
 		ON o.product_id = prod.id
 	LEFT JOIN google_sheets.condition_transaction_type_map AS cttp
 		ON JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') = cttp.condition
+	LEFT JOIN ref.tax_rate_history AS t
+		ON t.region = 'sg'
+		AND o.date BETWEEN t.from_date AND t.to_date
 ),
 
 atome_local AS (
@@ -318,7 +330,8 @@ atome_final AS (
 		a.condition,
 		1 AS quantity,
 		a.currency,
-		a.total_charge_amount_usd AS line_item_amount_usd,
+		 -- divide by 1+tax because amounts are inclusive of tax
+		a.total_charge_amount_usd / (1 + t.rate) AS line_item_amount_usd,
 		pc.cogs / fx.fx_to_usd AS cogs,
 		pc.cashback,
 		t.rate AS gst_vat,
@@ -380,6 +393,9 @@ unioned_data AS (
 		packaging,
 		CAST(NULL AS DATE) AS acquisition_date
 	FROM lazada_data
+	LEFT JOIN ref.tax_rate_history AS t
+		ON t.region = 'sg'
+		AND lazada_data.purchase_date BETWEEN t.from_date AND t.to_date
 	WHERE line_item_amount_usd > 0
 	
 	UNION ALL
