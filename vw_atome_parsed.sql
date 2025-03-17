@@ -1,5 +1,5 @@
--- DROP VIEW IF EXISTS all_postgres.atome_parsed;
--- CREATE VIEW all_postgres.atome_parsed AS 
+DROP VIEW IF EXISTS all_postgres.atome_parsed;
+CREATE VIEW all_postgres.atome_parsed AS 
 
 SELECT
     -- Original columns
@@ -11,7 +11,6 @@ SELECT
     ap.patientsysid,
     ap.status AS atome_status,
     o.status AS order_status,
-    COALESCE(o.prescription_price_id, o.price_id) AS price_id,
     ap.amount,
 
     -- Top-level fields
@@ -45,7 +44,7 @@ SELECT
             JSON_QUERY(o.prescription_order_calculation, '$[0]')
         ), 
         '$.priceId'
-    ) AS priceId,
+    ) AS price_id,
 
     CAST(
         COALESCE(
@@ -179,4 +178,4 @@ SELECT
 FROM sg_postgres_rds_public.atome_payments AS ap
 LEFT JOIN all_postgres.order AS o
     ON ap.ordersysid = o.sys_id
-QUALIFY ROW_NUMBER() OVER (PARTITION BY ap.ordersysid ORDER BY ap.updated_at DESC) = 1;
+-- QUALIFY ROW_NUMBER() OVER (PARTITION BY ap.ordersysid ORDER BY ap.updated_at DESC) = 1;
