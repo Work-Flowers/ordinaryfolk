@@ -34,6 +34,7 @@ checkouts AS (
         DATE(t.timestamp) AS date,
         LOWER(c.country) AS country,
         map.channel,
+
         COUNT(c.message_id) AS n
     FROM segment.checkout_completed AS c
     INNER JOIN segment.tracks AS t ON c.message_id = t.message_id
@@ -47,8 +48,9 @@ marketing_spend AS (
         date,
         LOWER(country_code) AS country,
         channel,
+        condition,
         cost_usd
-    FROM cac.marketing_spend
+    FROM cac.marketing_spend 
 ),
 
 consults AS (
@@ -56,6 +58,7 @@ consults AS (
 		DATE(appt.date) AS date,
 		appt.region AS country,
 		map.channel,
+		
 		COUNT(DISTINCT appt.sys_id) AS n
 	FROM all_postgres.acuity_appointment_latest AS appt
 	LEFT JOIN all_postgres.order_acuity_appointment AS oaa
@@ -67,25 +70,26 @@ consults AS (
 	GROUP BY 1,2,3
 ),
 
-customer_history AS (
-	
-	SELECT
-		cm.customer_id,
-		cm.purchase_date AS first_purchase_date,
-		cm.charge_id,
-		cm.product_name AS first_product,
-		LEAD(cm.product_name, 1) OVER(PARTITION BY customer_id ORDER BY purchase_date) AS second_product,
-		COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd) AS first_revenue,
-		LEAD(COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd), 1) OVER (PARTITION BY customer_id ORDER BY purchase_date) AS second_revenue,
-		ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY purchase_date) AS row
-		 
-	FROM finance_metrics.contribution_margin AS cm
-	LEFT JOIN all_postgres.order AS o
-		ON cm.pay
-	WHERE cm.customer_id IS NOT NULL
-	QUALIFY ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY purchase_date) <= 2
-	ORDER BY 1,2
-)
+-- not using this section
+-- customer_history AS (
+-- 	
+-- 	SELECT
+-- 		cm.customer_id,
+-- 		cm.purchase_date AS first_purchase_date,
+-- 		cm.charge_id,
+-- 		cm.product_name AS first_product,
+-- 		LEAD(cm.product_name, 1) OVER(PARTITION BY customer_id ORDER BY purchase_date) AS second_product,
+-- 		COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd) AS first_revenue,
+-- 		LEAD(COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd), 1) OVER (PARTITION BY customer_id ORDER BY purchase_date) AS second_revenue,
+-- 		ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY purchase_date) AS row
+-- 		 
+-- 	FROM finance_metrics.contribution_margin AS cm
+-- 	LEFT JOIN all_postgres.order AS o
+-- 		ON cm.pay
+-- 	WHERE cm.customer_id IS NOT NULL
+-- 	QUALIFY ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY purchase_date) <= 2
+-- 	ORDER BY 1,2
+-- )
 -- Step 1: Create a superset of all (date, country, channel) combinations
 all_keys AS (
     
