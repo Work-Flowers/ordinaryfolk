@@ -6,12 +6,13 @@ WITH signups AS (
         DATE(t.timestamp) AS date,
         LOWER(s.country) AS country,
         map.channel,
+        s.condition,
         COUNT(s.message_id) AS n
     FROM segment.signed_up AS s
     INNER JOIN segment.tracks AS t ON s.message_id = t.message_id
     INNER JOIN cac.utm_source_map AS map 
     	ON s.utm_source = map.context_campaign_source
-    GROUP BY 1, 2, 3
+    GROUP BY 1,2,3,4
 ),
 
 q3_completions AS (
