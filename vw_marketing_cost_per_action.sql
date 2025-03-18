@@ -20,12 +20,13 @@ q3_completions AS (
         DATE(t.timestamp) AS date,
         LOWER(v.country) AS country,
         map.channel,
+        v.evaluation_type AS condition,
         COUNT(v.message_id) AS n
     FROM segment.viewed_4_th_question_of_eval AS v
     INNER JOIN segment.tracks AS t ON v.message_id = t.message_id
     LEFT JOIN cac.utm_source_map AS map 
     	ON v.utm_source = map.context_campaign_source
-    GROUP BY 1, 2, 3
+    GROUP BY 1,2,3,4
 ),
 
 checkouts AS (
