@@ -123,3 +123,22 @@ LEFT JOIN ref.fx_rates AS fx
 LEFT JOIN google_sheets.campaign_condition_map AS ccm
 	ON tc.name = ccm.campaign_name
 GROUP BY 1,2,3,4,5,6
+
+UNION ALL
+
+SELECT
+	man.supplier AS channel,
+	man.date,
+	CAST(NULL AS STRING) AS campaign_name,
+	man.condition, 
+	man.currency AS currency_code,
+	man.country AS country_code,
+	0 AS reach,
+	0 AS clicks,
+	0 AS impressions,
+	SUM(man.amount) AS cost_local,
+	SUM(man.amount / fx.fx_to_usd) AS cost_usd
+FROM google_sheets.manual_ad_spend AS man
+LEFT JOIN ref.fx_rates AS fx
+	ON LOWER(man.currency) = fx.currency
+GROUP BY 1,2,3,4,5,6,7,8,9
