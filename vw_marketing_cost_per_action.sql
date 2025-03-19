@@ -11,7 +11,7 @@ WITH signups AS (
     FROM segment.signed_up AS s
     INNER JOIN segment.tracks AS t 
     	ON s.message_id = t.message_id
-    INNER JOIN cac.utm_source_map AS map 
+    LEFT JOIN cac.utm_source_map AS map 
     	ON s.utm_source = map.context_campaign_source
 	LEFT JOIN google_sheets.postgres_stripe_condition_map AS cmap
 		ON s.condition = cmap.postgres_condition
@@ -45,9 +45,9 @@ checkouts AS (
     FROM segment.checkout_completed AS c
     INNER JOIN segment.tracks AS t 
     	ON c.message_id = t.message_id
-	INNER JOIN segment.checkout_completed_products AS ccp
+	LEFT JOIN segment.checkout_completed_products AS ccp
 		ON c.order_id = ccp.order_id
-    INNER JOIN cac.utm_source_map AS map 
+    LEFT JOIN cac.utm_source_map AS map 
     	ON c.utm_source = map.context_campaign_source
 	LEFT JOIN google_sheets.postgres_stripe_condition_map AS cmap
 		ON ccp.condition = cmap.postgres_condition
