@@ -6,10 +6,11 @@ WITH signups AS (
         DATE(t.timestamp) AS date,
         LOWER(s.country) AS country,
         map.channel,
-        cmap.stripe_condition AS condition,
+        COALESCE(cmap.stripe_condition, 'N/A') AS condition,
         COUNT(s.message_id) AS n
     FROM segment.signed_up AS s
-    INNER JOIN segment.tracks AS t ON s.message_id = t.message_id
+    INNER JOIN segment.tracks AS t 
+    	ON s.message_id = t.message_id
     INNER JOIN cac.utm_source_map AS map 
     	ON s.utm_source = map.context_campaign_source
 	LEFT JOIN google_sheets.postgres_stripe_condition_map AS cmap
@@ -22,7 +23,7 @@ q3_completions AS (
         DATE(t.timestamp) AS date,
         LOWER(v.country) AS country,
         map.channel,
-        cmap.stripe_condition AS condition,
+        COALESCE(cmap.stripe_condition, 'N/A') AS condition,
         COUNT(v.message_id) AS n
     FROM segment.viewed_4_th_question_of_eval AS v
     INNER JOIN segment.tracks AS t 
@@ -39,7 +40,7 @@ checkouts AS (
         DATE(t.timestamp) AS date,
         LOWER(c.country) AS country,
         map.channel,
-		cmap.stripe_condition AS condition,
+		COALESCE(cmap.stripe_condition, 'N/A') AS condition,
         COUNT(DISTINCT c.message_id) AS n
     FROM segment.checkout_completed AS c
     INNER JOIN segment.tracks AS t 
@@ -58,7 +59,7 @@ marketing_spend AS (
         date,
         LOWER(country_code) AS country,
         channel,
-        condition,
+        COALESCE(condition, 'N/A') AS condition,
         cost_usd
     FROM cac.marketing_spend 
 ),
@@ -68,7 +69,7 @@ consults AS (
 		DATE(appt.date) AS date,
 		appt.region AS country,
 		map.channel,
-		JSON_VALUE(prod.metadata, '$.condition') AS condition,
+		COALESCE(JSON_VALUE(prod.metadata, '$.condition'), 'N/A') AS condition,
 		COUNT(DISTINCT appt.sys_id) AS n
 	FROM all_postgres.acuity_appointment_latest AS appt
 	LEFT JOIN all_postgres.order_acuity_appointment AS oaa
