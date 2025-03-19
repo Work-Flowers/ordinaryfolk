@@ -4,7 +4,7 @@ CREATE VIEW cac.marketing_cost_per_action AS
 WITH signups AS (
     SELECT
         DATE(t.timestamp) AS date,
-        LOWER(s.country) AS country,
+        LOWER(s.region) AS country,
         map.channel,
         COALESCE(cmap.stripe_condition, 'N/A') AS condition,
         COUNT(s.message_id) AS n
@@ -21,7 +21,7 @@ WITH signups AS (
 q3_completions AS (
     SELECT
         DATE(t.timestamp) AS date,
-        LOWER(v.country) AS country,
+        LOWER(v.region) AS country,
         map.channel,
         COALESCE(cmap.stripe_condition, 'N/A') AS condition,
         COUNT(v.message_id) AS n
@@ -38,7 +38,7 @@ q3_completions AS (
 checkouts AS (
     SELECT
         DATE(t.timestamp) AS date,
-        LOWER(c.country) AS country,
+        LOWER(c.region) AS country,
         map.channel,
 		COALESCE(cmap.stripe_condition, 'N/A') AS condition,
         COUNT(DISTINCT c.message_id) AS n
