@@ -5,7 +5,7 @@ WITH signups AS (
     SELECT
         DATE(t.timestamp) AS date,
         LOWER(s.region) AS country,
-        map.channel,
+        COALESCE(map.channel, 'N/A') AS channel,
         COALESCE(cmap.stripe_condition, 'N/A') AS condition,
         COUNT(s.message_id) AS n
     FROM segment.signed_up AS s
@@ -22,9 +22,9 @@ q3_completions AS (
     SELECT
         DATE(t.timestamp) AS date,
         LOWER(v.region) AS country,
-        map.channel,
+        COALESCE(map.channel, 'N/A') AS channel,
         COALESCE(cmap.stripe_condition, 'N/A') AS condition,
-        COUNT(v.message_id) AS n
+        COUNT(DISTINCT v.message_id) AS n
     FROM segment.viewed_4_th_question_of_eval AS v
     INNER JOIN segment.tracks AS t 
     	ON v.message_id = t.message_id
@@ -39,14 +39,15 @@ checkouts AS (
     SELECT
         DATE(t.timestamp) AS date,
         LOWER(c.region) AS country,
-        map.channel,
+        COALESCE(map.channel, 'N/A') AS channel,
 		COALESCE(cmap.stripe_condition, 'N/A') AS condition,
         COUNT(DISTINCT c.message_id) AS n
     FROM segment.checkout_completed AS c
     INNER JOIN segment.tracks AS t 
     	ON c.message_id = t.message_id
-	LEFT JOIN segment.checkout_completed_products AS ccp
-		ON c.order_id = ccp.order_id
+	INNER JOIN segment.checkout_completed_products AS ccp
+		ON c.message_id = ccp.message_id
+		AND ccp.name = 'Teleconsultation'
     LEFT JOIN cac.utm_source_map AS map 
     	ON c.utm_source = map.context_campaign_source
 	LEFT JOIN google_sheets.postgres_stripe_condition_map AS cmap
@@ -60,15 +61,16 @@ marketing_spend AS (
         LOWER(country_code) AS country,
         channel,
         COALESCE(condition, 'N/A') AS condition,
-        cost_usd
+        SUM(cost_usd) AS cost_usd
     FROM cac.marketing_spend 
+    GROUP BY 1,2,3,4
 ),
 
 consults AS (
 	SELECT
 		DATE(appt.date) AS date,
 		appt.region AS country,
-		map.channel,
+		COALESCE(map.channel, 'N/A') AS channel,
 		COALESCE(JSON_VALUE(prod.metadata, '$.condition'), 'N/A') AS condition,
 		COUNT(DISTINCT appt.sys_id) AS n
 	FROM all_postgres.acuity_appointment_latest AS appt
@@ -85,27 +87,7 @@ consults AS (
 	GROUP BY 1,2,3,4
 ),
 
--- not using this section
--- customer_history AS (
--- 	
--- 	SELECT
--- 		cm.customer_id,
--- 		cm.purchase_date AS first_purchase_date,
--- 		cm.charge_id,
--- 		cm.product_name AS first_product,
--- 		LEAD(cm.product_name, 1) OVER(PARTITION BY customer_id ORDER BY purchase_date) AS second_product,
--- 		COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd) AS first_revenue,
--- 		LEAD(COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd), 1) OVER (PARTITION BY customer_id ORDER BY purchase_date) AS second_revenue,
--- 		ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY purchase_date) AS row
--- 		 
--- 	FROM finance_metrics.contribution_margin AS cm
--- 	LEFT JOIN all_postgres.order AS o
--- 		ON cm.pay
--- 	WHERE cm.customer_id IS NOT NULL
--- 	QUALIFY ROW_NUMBER() OVER(PARTITION BY customer_id ORDER BY purchase_date) <= 2
--- 	ORDER BY 1,2
--- )
--- Step 1: Create a superset of all (date, country, channel) combinations
+
 all_keys AS (
     
     SELECT DISTINCT 
@@ -150,7 +132,6 @@ all_keys AS (
     	channel,
     	condition 
 	FROM consults
-	
 )
 
 -- Step 2: Perform FULL OUTER JOINS using the superset as the base
