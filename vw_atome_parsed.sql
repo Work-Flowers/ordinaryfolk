@@ -11,6 +11,7 @@ SELECT
     ap.patientsysid,
     ap.status AS atome_status,
     o.status AS order_status,
+    o.stripe_subscription_id AS subscription_id,
     ap.amount,
 
     -- Top-level fields
