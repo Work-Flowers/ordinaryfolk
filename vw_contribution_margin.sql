@@ -196,8 +196,8 @@ sg_cod_data AS (
 		COALESCE(cttp.purchase_type, 'One-Time') AS purchase_type,
 		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
 		o.email AS customer_id,
-		CAST(NULL AS STRING) AS charge_id,
 		o.email,
+		CAST(NULL AS STRING) AS charge_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		o.date AS purchase_date,
@@ -230,6 +230,14 @@ sg_cod_data AS (
 		AND o.date BETWEEN t.from_date AND t.to_date
 ),
 
+atome_order_dates AS (
+	SELECT
+		atome_order_id,
+		MIN(transaction_time) AS order_date
+	FROM google_sheets.atome_manual
+	GROUP BY 1
+),
+
 atome_final AS (
 	SELECT
 		'Atome' AS sales_channel,
@@ -241,13 +249,13 @@ atome_final AS (
 			END AS purchase_type,
 		'manual' AS billing_reason,
 		ap.patientsysid AS customer_id,
-		am.atome_order_id AS charge_id,
 		p.email,
+		am.atome_order_id AS charge_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		ap.subscription_id,
-		am.transaction_time AS purchase_date,
+		aod.order_date AS purchase_date,
 		SUM(GREATEST(am.transaction_amount, 0) / fx.fx_to_usd) AS total_charge_amount_usd,
-		SUM(-LEAST(am.transaction_amount, 0)) / SUM(GREATEST(am.transaction_amount, 0)) AS refund_rate,
+		SUM(ABS(LEAST(am.transaction_amount, 0))) / SUM(GREATEST(am.transaction_amount, 0)) AS refund_rate,
 		px.product_id,
 		prod.name AS product_name,
 		ap.price_id,
@@ -260,8 +268,10 @@ atome_final AS (
 		t.rate AS gst_vat,
 		-SUM(am.sponsored_voucher_amount + mdr_fee + flat_fee) / SUM(GREATEST(am.transaction_amount, 0) / fx.fx_to_usd) AS fee_rate,
 		pc.packaging,
-		MIN(transaction_time) OVER (PARTITION BY ap.patientsysid) AS acquisition_date
+		MIN(aod.order_date) OVER (PARTITION BY ap.patientsysid) AS acquisition_date
 	FROM google_sheets.atome_manual AS am
+	INNER JOIN atome_order_dates AS aod
+		ON am.atome_order_id = aod.atome_order_id
 	LEFT JOIN all_postgres.atome_parsed AS ap
 		ON am.atome_order_id = ap.`orderId`
 	LEFT JOIN all_postgres.patient AS p
@@ -321,7 +331,7 @@ unioned_data AS (
 		line_item_amount_usd,
 		cogs,
 		0 AS cashback,
-		0 AS gst_vat,
+		t.rate AS gst_vat,
 		fees / line_item_amount_usd AS fee_rate,
 		packaging,
 		CAST(NULL AS DATE) AS acquisition_date
