@@ -30,7 +30,7 @@ sub_mrr AS (
 		CASE 
 			WHEN pl.interval = 'month' THEN pl.amount * si.quantity / COALESCE(subs.subunits, 100) / COALESCE(pl.interval_count, 1)
 			WHEN pl.interval = 'year' THEN pl.amount * si.quantity / COALESCE(subs.subunits, 100) / (12 * COALESCE(pl.interval_count, 1))
-			WHEN pl.interval = 'week' THEN pl.amount * si.quantity / COALESCE(subs.subunits, 100) * (52/ 12) / COALESCE(pl.interval_count, 1)
+			WHEN pl.interval = 'week' THEN pl.amount * si.quantity / COALESCE(subs.subunits, 100) * (52 / 12) / COALESCE(pl.interval_count, 1)
 			WHEN pl.interval = 'day' THEN pl.amount * si.quantity / COALESCE(subs.subunits, 100) * (365 / 12)/ COALESCE(pl.interval_count, 1)
 			ELSE 0
 			END AS subscription_mrr,
@@ -82,8 +82,8 @@ calendar AS (
 	FROM UNNEST(
 		GENERATE_DATE_ARRAY(
 			DATE '2020-08-01',
-		CURRENT_DATE(),
-		INTERVAL 1 DAY
+			CURRENT_DATE(),
+			INTERVAL 1 DAY
 		)
 	) AS obs_date
 ),
