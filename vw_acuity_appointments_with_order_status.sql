@@ -4,7 +4,7 @@ CREATE VIEW all_postgres.all_appointments AS
 SELECT
 	'Acuity' AS source,
 	appt.region,
-	CAST(appt.id AS STRING) AS id,
+	CAST(appt.sys_id AS STRING) AS id,
 	DATE(appt.date) AS date,
 	appt.canceled,
 	appt.no_show,
