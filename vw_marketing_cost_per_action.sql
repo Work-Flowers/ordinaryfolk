@@ -67,23 +67,15 @@ marketing_spend AS (
 ),
 
 consults AS (
-	SELECT
-		DATE(appt.date) AS date,
-		appt.region AS country,
+	SELECT 
+		a.date,
+		a.region AS country,
 		COALESCE(map.channel, 'N/A') AS channel,
-		COALESCE(JSON_VALUE(prod.metadata, '$.condition'), 'N/A') AS condition,
-		COUNT(DISTINCT appt.sys_id) AS n
-	FROM all_postgres.acuity_appointment_latest AS appt
-	LEFT JOIN all_postgres.order_acuity_appointment AS oaa
-		ON appt.sys_id = oaa.acuityappointmentsysid
-	LEFT JOIN all_postgres.order AS o
-		ON oaa.ordersysid = o.sys_id
-	LEFT JOIN all_stripe.price AS px
-		ON COALESCE(o.prescription_price_id, o.price_id) = px.id
-	LEFT JOIN all_stripe.product AS prod
-		ON px.product_id = prod.id
+		COALESCE(a.condition, 'N/A') AS condition,
+		COUNT(DISTINCT a.id) AS n
+	FROM all_postgres.all_appointments AS a
 	LEFT JOIN cac.utm_source_map AS map
-		ON JSON_EXTRACT_SCALAR(o.utm, '$.utmSource') = map.context_campaign_source
+		ON a.utm_source = map.context_campaign_source
 	GROUP BY 1,2,3,4
 ),
 
