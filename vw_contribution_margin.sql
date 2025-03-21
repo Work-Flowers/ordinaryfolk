@@ -230,6 +230,49 @@ sg_cod_data AS (
 		AND o.date BETWEEN t.from_date AND t.to_date
 ),
 
+hk_cod_data AS (
+	SELECT
+		'HK COD' AS sales_channel,
+		'hk' AS region,
+		CAST(NULL AS STRING) AS type,
+		COALESCE(cttp.purchase_type, 'One-Time') AS purchase_type,
+		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
+		o.email AS customer_id,
+		o.email,
+		CAST(NULL AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS payment_intent_id,
+		CAST(NULL AS STRING) AS subscription_id,
+		o.date AS purchase_date,
+		o.purchase_amount / fx.fx_to_usd AS total_charge_amount_usd,
+		0 AS refund_rate,
+		o.email AS product_id,
+		prod.name AS product_name,
+		CAST(NULL AS STRING) AS price_id,
+		JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') AS condition,
+		o.quantity,
+		o.currency,
+		o.purchase_amount / fx.fx_to_usd AS line_item_amount_usd,
+		c.cost_box / fx.fx_to_usd AS cogs,
+		.02 AS cashback,
+		t.rate AS gst_vat,
+		0 AS fee_rate,
+		c.packaging_cost / fx.fx_to_usd AS packaging,
+		MIN(o.date) OVER(PARTITION BY o.email) AS acquisition_date
+	FROM finance_metrics.cod_hk_orders_all AS o
+	LEFT JOIN ref.fx_rates AS fx
+		ON o.currency = fx.currency
+	LEFT JOIN google_sheets.hk_product_cost_stripe AS c
+		ON o.product_id = c.id
+	LEFT JOIN all_stripe.product AS prod
+		ON o.product_id = prod.id
+	LEFT JOIN google_sheets.condition_transaction_type_map AS cttp
+		ON JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') = cttp.condition
+	LEFT JOIN ref.tax_rate_history AS t
+		ON t.region = 'hk'
+		AND o.date BETWEEN t.from_date AND t.to_date
+),
+
+
 atome_order_dates AS (
 	SELECT
 		atome_order_id,
@@ -305,6 +348,10 @@ unioned_data AS (
 	UNION ALL
 	
 	SELECT * FROM sg_cod_data
+	
+	UNION ALL
+	
+	SELECT * FROM hk_cod_data
 	
 	UNION ALL
 
