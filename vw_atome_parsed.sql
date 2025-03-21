@@ -9,6 +9,7 @@ SELECT
     ap.sys_id,
     ap.ordersysid,
     ap.patientsysid,
+    COALESCE(o.prescription_price_id, o.price_id) AS price_id,
     ap.status AS atome_status,
     o.status AS order_status,
     o.updated_by AS order_updated_by,
@@ -39,14 +40,6 @@ SELECT
             JSON_VALUE(JSON_QUERY(o.prescription_order_calculation, '$[0]'), '$.mainTax')
         ) AS INT64
     ) AS mainTax,
-
-    JSON_VALUE(
-        COALESCE(
-            o.prescription_order_calculation,
-            JSON_QUERY(o.prescription_order_calculation, '$[0]')
-        ), 
-        '$.priceId'
-    ) AS price_id,
 
     CAST(
         COALESCE(
@@ -180,4 +173,3 @@ SELECT
 FROM sg_postgres_rds_public.atome_payments AS ap
 LEFT JOIN all_postgres.order AS o
     ON ap.ordersysid = o.sys_id
--- QUALIFY ROW_NUMBER() OVER (PARTITION BY ap.ordersysid ORDER BY ap.updated_at DESC) = 1;
