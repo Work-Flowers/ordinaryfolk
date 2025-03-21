@@ -5,7 +5,7 @@ SELECT
 	'Acuity' AS source,
 	appt.region,
 	CAST(appt.sys_id AS STRING) AS id,
-	DATE(appt.date) AS date,
+	DATE(appt.created_at) AS date,
 	appt.canceled,
 	appt.no_show,
 	o.status,
