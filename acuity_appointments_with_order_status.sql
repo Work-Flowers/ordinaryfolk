@@ -1,7 +1,8 @@
 SELECT
+	'Acuity' AS source,
 	appt.region,
 	CAST(appt.id AS STRING) AS id,
-	DATE(appt.date) AS date,
+	DATE(appt.created_at) AS date,
 	appt.canceled,
 	appt.no_show,
 	o.status,
@@ -17,10 +18,13 @@ LEFT JOIN all_stripe.price AS px
 LEFT JOIN all_stripe.product AS prod
 	ON px.product_id = prod.id	
 WHERE DATE(appt.date) <= CURRENT_DATE
+-- only include the first appointment for each customer
+QUALIFY ROW_NUMBER() OVER (PARTITION BY appt.email ORDER BY appt.date ) = 1
 
 UNION ALL
 
 SELECT
+	'HK Text Consult' AS source,
 	txt.region,
 	txt.message_id AS id,
 	DATE(t.timestamp) AS date,
@@ -28,7 +32,11 @@ SELECT
 	FALSE AS no_show,
 	CAST(NULL AS STRING) AS status,
 	FALSE AS has_prescription,
-	txt.`condition`
+	map.stripe_condition AS condition
 FROM segment.text_consultation_booked AS txt
 INNER JOIN segment.tracks AS t
 	ON txt.message_id = t.message_id
+LEFT JOIN google_sheets.postgres_stripe_condition_map AS map
+	ON txt.condition = map.postgres_condition
+-- only include the first appointment for each customer
+QUALIFY ROW_NUMBER() OVER (PARTITION BY t.user_id ORDER BY t.timestamp) = 1
