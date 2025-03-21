@@ -1,12 +1,16 @@
+DROP VIEW IF EXISTS all_postgres.all_appointments;
+CREATE VIEW all_postgres.all_appointments AS 
+
 SELECT
 	'Acuity' AS source,
 	appt.region,
 	CAST(appt.id AS STRING) AS id,
-	DATE(appt.created_at) AS date,
+	DATE(appt.date) AS date,
 	appt.canceled,
 	appt.no_show,
 	o.status,
 	o.prescription_id IS NOT NULL AS has_prescription,
+	JSON_VALUE(o.utm, '$.utmSource') AS utm_source,
 	JSON_VALUE(prod.metadata, '$.condition') AS condition
 FROM all_postgres.acuity_appointment_latest AS appt
 LEFT JOIN all_postgres.order_acuity_appointment AS map
@@ -17,9 +21,9 @@ LEFT JOIN all_stripe.price AS px
 	ON COALESCE(o.prescription_price_id, o.price_id) = px.id
 LEFT JOIN all_stripe.product AS prod
 	ON px.product_id = prod.id	
-WHERE DATE(appt.date) <= CURRENT_DATE
+-- WHERE DATE(appt.date) <= CURRENT_DATE
 -- only include the first appointment for each customer
-QUALIFY ROW_NUMBER() OVER (PARTITION BY appt.email ORDER BY appt.date ) = 1
+QUALIFY ROW_NUMBER() OVER (PARTITION BY appt.email ORDER BY appt.date) = 1
 
 UNION ALL
 
@@ -32,6 +36,7 @@ SELECT
 	FALSE AS no_show,
 	CAST(NULL AS STRING) AS status,
 	FALSE AS has_prescription,
+	t.context_campaign_source AS utm_source,
 	map.stripe_condition AS condition
 FROM segment.text_consultation_booked AS txt
 INNER JOIN segment.tracks AS t
