@@ -13,10 +13,14 @@ FROM google_sheets.cod_hk_revenue_pre_2025 AS a
 UNION ALL
 
 SELECT
-	b.date,
-	b.email,
-	LOWER(b.currency) AS currency,
-	b.quantity,
-	b.product_id,
-	b.revenue AS purchase_amount
-FROM google_sheets.cod_sg_revenue AS b;
+	aw.pai_jian_ri_qi_delivery_date AS date,
+	aw.email,
+	'hkd' AS currency,
+	li.quantity,
+	pc.id AS product_id,
+	li.revenue AS purchase_amount
+FROM google_sheets.sf_express_airway_bills AS aw
+LEFT JOIN google_sheets.sf_express_line_items AS li
+	ON aw.yun_dan_bian_hao_awb_no_ = li.yun_dan_bian_hao_awb_no_
+LEFT JOIN google_sheets.hk_product_cost_stripe AS pc
+	ON LOWER(li.sku) = LOWER(pc.sku);
