@@ -287,46 +287,46 @@ atome_final AS (
 		'sg' AS region,
 		CAST(NULL AS STRING) AS type,
 		CASE 
-			WHEN ap.subscription_id IS NOT NULL THEN 'Subscription'
+			WHEN o.stripe_subscription_id IS NOT NULL THEN 'Subscription'
 			ELSE 'One-Time' 
 			END AS purchase_type,
 		'manual' AS billing_reason,
-		ap.patientsysid AS customer_id,
+		o.patient_id AS customer_id,
 		p.email,
 		am.atome_order_id AS charge_id,
-		CAST(NULL AS STRING) AS payment_intent_id,
-		ap.subscription_id,
+		o.stripe_payment_intent_id AS payment_intent_id,
+		o.stripe_subscription_id AS subscription_id,
 		aod.order_date AS purchase_date,
 		SUM(GREATEST(am.transaction_amount, 0) / fx.fx_to_usd) AS total_charge_amount_usd,
 		SUM(ABS(LEAST(am.transaction_amount, 0))) / SUM(GREATEST(am.transaction_amount, 0)) AS refund_rate,
 		px.product_id,
 		prod.name AS product_name,
-		ap.price_id,
+		COALESCE(o.prescription_price_id, o.price_id) AS price_id,
 		JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') AS condition,
 		1 AS quantity,
 		LOWER(am.currency) AS currency,
 		SUM(GREATEST(am.transaction_amount, 0) / fx.fx_to_usd) AS line_item_amount_usd,
 		pc.cogs / fx.fx_to_usd  AS cogs,
-		ap.cashbackEarnRate AS cashback,
+		pc.cashback,
 		t.rate AS gst_vat,
 		-SUM(am.sponsored_voucher_amount + mdr_fee + flat_fee) / SUM(GREATEST(am.transaction_amount, 0) / fx.fx_to_usd) AS fee_rate,
 		pc.packaging,
-		MIN(aod.order_date) OVER (PARTITION BY ap.patientsysid) AS acquisition_date
+		MIN(aod.order_date) OVER (PARTITION BY o.patient_id) AS acquisition_date
 	FROM google_sheets.atome_manual AS am
 	INNER JOIN atome_order_dates AS aod
 		ON am.atome_order_id = aod.atome_order_id
-	LEFT JOIN all_postgres.atome_parsed AS ap
-		ON am.atome_order_id = ap.`orderId`
+	LEFT JOIN sg_postgres_rds_public.order AS o
+		ON am.e_commerce_platform_order_id = o.short_id
 	LEFT JOIN all_postgres.patient AS p
-		ON ap.patientsysid = p.sys_id
+		ON o.patient_id = p.sys_id
 	LEFT JOIN ref.fx_rates AS fx
 		ON LOWER(am.currency) = fx.currency
 	LEFT JOIN all_stripe.price AS px
-		ON ap.price_id = px.id
+		ON COALESCE(o.prescription_price_id, o.price_id) = px.id
 	LEFT JOIN all_stripe.product AS prod
 		ON px.product_id = prod.id
 	LEFT JOIN all_stripe.product_cost AS pc
-		ON ap.price_id = pc.price_id
+		ON COALESCE(o.prescription_price_id, o.price_id) = pc.price_id
 	LEFT JOIN ref.tax_rate_history AS t
 		ON 'sg' = t.region
 		AND am.transaction_time  BETWEEN t.from_date AND t.to_date
