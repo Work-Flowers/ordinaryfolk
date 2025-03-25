@@ -37,9 +37,9 @@ SELECT
 	JSON_VALUE(o.utm, '$.utmSource') AS utm_source,
 	atc.condition
 FROM first_appt AS appt
-LEFT JOIN all_postgres.order_acuity_appointment AS map
+INNER JOIN all_postgres.order_acuity_appointment AS map
 	ON appt.sys_id = map.acuityappointmentsysid
-LEFT JOIN all_postgres.order AS o
+INNER JOIN all_postgres.order AS o
 	ON map.ordersysid = o.sys_id
 LEFT JOIN google_sheets.acuity_type_condition_map AS atc
 	ON appt.type = atc.type
