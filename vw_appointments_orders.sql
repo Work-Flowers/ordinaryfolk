@@ -22,7 +22,6 @@ first_text_consult AS (
 	QUALIFY ROW_NUMBER() OVER (PARTITION BY t.user_id ORDER BY t.timestamp) = 1
 )
 
-
 SELECT
 	'Acuity' AS source,
 	appt.region,
@@ -37,9 +36,9 @@ SELECT
 	COALESCE(utm.channel, JSON_VALUE(o.utm, '$.utmSource')) AS utm_source,
 	atc.condition
 FROM first_appt AS appt
-INNER JOIN all_postgres.order_acuity_appointment AS map
+LEFT JOIN all_postgres.order_acuity_appointment AS map
 	ON appt.sys_id = map.acuityappointmentsysid
-INNER JOIN all_postgres.order AS o
+LEFT JOIN all_postgres.order AS o
 	ON map.ordersysid = o.sys_id
 LEFT JOIN google_sheets.acuity_type_condition_map AS atc
 	ON appt.type = atc.type
