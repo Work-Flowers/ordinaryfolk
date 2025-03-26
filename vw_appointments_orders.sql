@@ -14,7 +14,8 @@ first_text_consult AS (
 		txt.message_id,
 		t.timestamp,
 		t.context_campaign_source,
-		txt.condition
+		txt.condition,
+		txt.order_id
 	FROM segment.text_consultation_booked AS txt
 	INNER JOIN segment.tracks AS t
 		ON txt.message_id = t.message_id
@@ -56,13 +57,15 @@ SELECT
 	DATE(txt.timestamp) AS date,
 	FALSE AS canceled,
 	FALSE AS no_show,
-	CAST(NULL AS STRING) AS ordersysid,
-	CAST(NULL AS STRING) AS status,
-	FALSE AS has_prescription,
-	FALSE AS has_subscription,
+	txt.order_id AS ordersysid,
+	o.status,
+	o.prescription_id IS NOT NULL AS has_prescription,
+	o.stripe_subscription_id IS NOT NULL AS has_subscription,
 	COALESCE(utm.channel, txt.context_campaign_source) AS utm_source,
 	map.stripe_condition AS condition
 FROM first_text_consult AS txt
+LEFT JOIN all_postgres.order AS o
+	ON txt.order_id = o.sys_id
 LEFT JOIN google_sheets.postgres_stripe_condition_map AS map
 	ON txt.condition = map.postgres_condition
 LEFT JOIN cac.utm_source_map AS utm
