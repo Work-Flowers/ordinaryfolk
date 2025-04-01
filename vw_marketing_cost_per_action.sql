@@ -70,12 +70,10 @@ consults AS (
 	SELECT 
 		a.date,
 		a.region AS country,
-		COALESCE(map.channel, 'N/A') AS channel,
+		COALESCE(a.utm_source, 'N/A') AS channel,
 		COALESCE(a.condition, 'N/A') AS condition,
-		COUNT(DISTINCT a.id) AS n
+		COUNT(DISTINCT a.consult_sys_id) AS n
 	FROM all_postgres.all_appointments AS a
-	LEFT JOIN cac.utm_source_map AS map
-		ON a.utm_source = map.context_campaign_source
 	GROUP BY 1,2,3,4
 ),
 
