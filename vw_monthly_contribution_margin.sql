@@ -12,8 +12,8 @@ WITH cm1 AS (
 		SUM(cashback) AS cashback,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * gst_vat) AS gst_vat,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * fee_rate) AS payment_gateway_fees,
-		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * refund_rate) AS refunds
-	FROM finance_metrics.contribution_margin
+		SUM(cm.amount_refunded_usd) AS refunds
+	FROM finance_metrics.contribution_margin AS cm
 	WHERE purchase_type = 'Subscription'
 	GROUP BY 1,2,3
 ),
@@ -41,8 +41,8 @@ marketing AS (
 
 SELECT
 	cm1.*,
-	delivery.cost AS delivery_cost,
-	mar.cost AS marketing_cost
+	delivery.cost * cm1.amount / SUM(cm1.amount) OVER (PARTITION BY cm1.date, cm1.country) AS delivery_cost,
+	mar.cost * cm1.amount / SUM(cm1.amount) OVER (PARTITION BY cm1.date, cm1.country) AS marketing_cost
 FROM cm1
 LEFT JOIN delivery
 	ON cm1.date = delivery.date
