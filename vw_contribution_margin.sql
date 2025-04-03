@@ -26,6 +26,7 @@ stripe_data AS (
 		DATE(ch.created) AS purchase_date,
 		ch.amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS total_charge_amount_usd,
 		COALESCE(ch.amount_refunded / ch.amount, 0) AS refund_rate,
+		ch.amount_refunded / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS amount_refunded_usd,
 		prod.id AS product_id,
 		prod.name AS product_name,
 		px.id AS price_id,
@@ -90,7 +91,8 @@ tiktok_data AS(
 		CAST(NULL AS STRING) AS subscription_id,
 		tik.created_time AS purchase_date,
 		0 AS total_charge_amount_usd,
-		COALESCE(tik.order_refund_amount, 0) / tik.revenue AS refund_rate,
+		SAFE_DIVIDE(COALESCE(tik.order_refund_amount, 0), COALESCE(tik.revenue, 1)) AS refund_rate,
+		COALESCE(tik.order_refund_amount, 0) / fx.fx_to_usd AS amount_refunded_usd,
 		CAST(tik.sku_id AS STRING) AS product_id,
 		tok.product_name,
 		CAST(NULL AS STRING) AS price_id,
@@ -102,7 +104,7 @@ tiktok_data AS(
 		0 AS cashback,
 		t.rate AS gst_vat,
 		-- fees entered as a negative number in TikTok Orders google sheet (https://docs.google.com/spreadsheets/d/1_XWOXag-iUo8BHjDh7-5pgwhv3rcFU1xG62TCRIIO6A/edit?gid=571245014#gid=571245014)
-		-COALESCE(tik.payment_gateway_fee / tik.revenue, 0) AS fee_rate,
+		-COALESCE(SAFE_DIVIDE(tik.payment_gateway_fee, COALESCE(tik.revenue, 1)), 0) AS fee_rate,
 		tok.packaging / fx.fx_to_usd AS packaging,
 		MIN(DATE(tik.created_time)) OVER(PARTITION BY tik.buyer_username) AS acquisition_date
 	FROM google_sheets.tiktok_orders AS tik
@@ -113,8 +115,6 @@ tiktok_data AS(
 	LEFT JOIN ref.tax_rate_history AS t
 		ON t.region = 'sg'
 		AND tik.created_time BETWEEN t.from_date AND t.to_date
-	WHERE
-		tik.revenue > 0
 ),
 
 lazada_data AS (
@@ -160,6 +160,7 @@ shopee_data AS (
 		DATE(so.payout_completed_date) AS purchase_date,
 		0 AS total_charge_amount_usd,
 		so.refund_amount / GREATEST(so.product_price, 1) AS refund_rate,
+		so.refund_amount / fx.fx_to_usd AS amount_refunded_usd,
 		CAST(so.product_id AS STRING) AS product_id,
 		so.product_name,
 		CAST(NULL AS STRING) AS price_id,
@@ -203,6 +204,7 @@ sg_cod_data AS (
 		o.date AS purchase_date,
 		o.purchase_amount / fx.fx_to_usd AS total_charge_amount_usd,
 		0 AS refund_rate,
+		0 AS amount_refunded_usd,
 		o.email AS product_id,
 		prod.name AS product_name,
 		CAST(NULL AS STRING) AS price_id,
@@ -245,6 +247,7 @@ hk_cod_data AS (
 		o.date AS purchase_date,
 		o.purchase_amount / fx.fx_to_usd AS total_charge_amount_usd,
 		0 AS refund_rate,
+		0 AS amount_refunded_usd,
 		o.email AS product_id,
 		prod.name AS product_name,
 		CAST(NULL AS STRING) AS price_id,
@@ -299,6 +302,7 @@ atome_final AS (
 		aod.order_date AS purchase_date,
 		SUM(GREATEST(am.transaction_amount, 0) / fx.fx_to_usd) AS total_charge_amount_usd,
 		SUM(ABS(LEAST(am.transaction_amount, 0))) / SUM(GREATEST(am.transaction_amount, 0)) AS refund_rate,
+		SUM(ABS(LEAST(am.transaction_amount, 0)) / fx.fx_to_usd) AS amount_refunded_usd,
 		px.product_id,
 		prod.name AS product_name,
 		COALESCE(o.prescription_price_id, o.price_id) AS price_id,
@@ -330,7 +334,7 @@ atome_final AS (
 	LEFT JOIN ref.tax_rate_history AS t
 		ON 'sg' = t.region
 		AND am.transaction_time  BETWEEN t.from_date AND t.to_date
-	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,14,15,16,17,18,19,21,22,23,25
+	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,15,16,17,18,19,20,22,23,24,26
 	HAVING SUM(GREATEST(am.transaction_amount, 0)) > 0
 ),
 
@@ -369,6 +373,7 @@ unioned_data AS (
 		purchase_date,
 		0 AS total_charge_amount_usd,
 		refunds / line_item_amount_usd AS refund_rate,
+		refunds AS amount_refunded_usd,
 		seller_sku AS product_id,
 		product_name,
 		CAST(NULL AS STRING) AS price_id,
