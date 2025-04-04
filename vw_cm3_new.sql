@@ -3,11 +3,14 @@ CREATE VIEW finance_metrics.cm3 AS
 
 WITH base AS (
   SELECT
+    sales_channel,
     region AS country,
     DATE_TRUNC(purchase_date, MONTH) AS purchase_month,
     new_existing,
+    billing_reason,
     purchase_type,
     condition,
+    currency,
     customer_id,
     COALESCE(line_item_amount_usd, total_charge_amount_usd) AS amount,
     cogs,
@@ -23,12 +26,15 @@ WITH base AS (
 
 cm1 AS (
 	SELECT
+	  sales_channel,
 	  country,
 	  purchase_month,
+	  purchase_type,
 	  acq_month,
 	  new_existing,
-	  purchase_type,
+	  billing_reason,
 	  condition,
+	  currency,
 	  customer_id,
 	  SUM(amount) AS revenue,
 	  SUM(cogs) AS cogs,
@@ -38,7 +44,7 @@ cm1 AS (
 	  SUM(amount * fee_rate) AS payment_gateway_fees,
 	  SUM(amount_refunded_usd) AS refunds
 	FROM base
-	GROUP BY 1,2,3,4,5,6,7
+	GROUP BY 1,2,3,4,5,6,7,8,9,10
 ),
 
 delivery AS (
