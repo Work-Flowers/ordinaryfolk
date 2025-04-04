@@ -91,7 +91,7 @@ tiktok_data AS(
 		CAST(NULL AS STRING) AS subscription_id,
 		tik.created_time AS purchase_date,
 		0 AS total_charge_amount_usd,
-		SAFE_DIVIDE(COALESCE(tik.order_refund_amount, 0), COALESCE(tik.order_amount, 1)) AS refund_rate,
+		SAFE_DIVIDE(COALESCE(tik.order_refund_amount, 0), COALESCE(tik.sku_subtotal_after_discount, 1)) AS refund_rate,
 		COALESCE(tik.order_refund_amount, 0) / fx.fx_to_usd AS amount_refunded_usd,
 		CAST(tik.sku_id AS STRING) AS product_id,
 		tok.product_name,
@@ -99,12 +99,12 @@ tiktok_data AS(
 		CAST(NULL AS STRING) AS condition,
 		tik.quantity,
 		LOWER(tik.currency) AS currency,
-		tik.order_amount / fx.fx_to_usd AS line_item_amount_usd,
+		tik.sku_subtotal_after_discount / fx.fx_to_usd AS line_item_amount_usd,
 		tik.quantity * tok.cogs / fx.fx_to_usd AS cogs,
 		0 AS cashback,
 		t.rate AS gst_vat,
 		-- fees entered as a negative number in TikTok Orders google sheet (https://docs.google.com/spreadsheets/d/1_XWOXag-iUo8BHjDh7-5pgwhv3rcFU1xG62TCRIIO6A/edit?gid=571245014#gid=571245014)
-		-COALESCE(SAFE_DIVIDE(tik.payment_gateway_fee, COALESCE(tik.order_amount, 1)), 0) AS fee_rate,
+		-COALESCE(SAFE_DIVIDE(tik.payment_gateway_fee, COALESCE(tik.sku_subtotal_after_discount, 1)), 0) AS fee_rate,
 		tok.packaging / fx.fx_to_usd AS packaging,
 		MIN(DATE(tik.created_time)) OVER(PARTITION BY tik.buyer_username) AS acquisition_date
 	FROM google_sheets.tiktok_orders AS tik
