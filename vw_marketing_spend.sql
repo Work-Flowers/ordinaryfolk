@@ -1,10 +1,5 @@
--- Drop the existing view if it exists
-DROP VIEW IF EXISTS `cac.marketing_spend`;
-
--- Create the view
-CREATE VIEW `cac.marketing_spend` AS
-
-WITH ga_targeting AS (
+CREATE VIEW `noah-e30be.cac.marketing_spend`
+AS WITH ga_targeting AS (
 	SELECT
 		campaign_id,
 		geo_target_constant_id
@@ -141,4 +136,4 @@ SELECT
 FROM google_sheets.manual_ad_spend AS man
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(man.currency) = fx.currency
-GROUP BY 1,2,3,4,5,6,7,8,9
+GROUP BY 1,2,3,4,5,6,7,8,9;
