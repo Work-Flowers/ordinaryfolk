@@ -48,10 +48,6 @@ stripe_data AS (
 	FROM all_stripe.charge AS ch
 	LEFT JOIN all_stripe.customer AS cust
 		ON ch.customer_id = cust.id
-	INNER JOIN all_stripe.payment_intent AS pi
-		ON ch.payment_intent_id = pi.id
-	LEFT JOIN all_postgres.order AS o
-		ON ch.payment_intent_id = o.stripe_payment_intent_id
 	INNER JOIN all_stripe.balance_transaction AS bt
 		ON ch.balance_transaction_id = bt.id
 	INNER JOIN ref.fx_rates AS fx
@@ -63,8 +59,7 @@ stripe_data AS (
 	LEFT JOIN all_stripe.invoice_line_item AS ii
 		ON ch.invoice_id = ii.invoice_id
 	LEFT JOIN all_stripe.price AS px
-	-- use price_id from invoice line item if available; otherwise look for price_id in payment_intent metadata
-		ON COALESCE(ii.price_id, JSON_EXTRACT_SCALAR(pi.metadata, '$.paymentIntentPriceId'), JSON_EXTRACT_SCALAR(pi.metadata, '$.stripePriceIds')) = px.id
+		ON ii.price_id = px.id
 	LEFT JOIN all_stripe.product AS prod
 		ON px.product_id = prod.id
 	LEFT JOIN all_stripe.product_cost AS pc
