@@ -38,6 +38,7 @@ cm1 AS (
 	  currency,
 	  customer_id,
 	  charge_id,
+	  gst_vat AS gst_vat_rate,
 	  SUM(amount) AS revenue,
 	  SUM(cogs) AS cogs,
 	  SUM(packaging) AS packaging,
@@ -46,7 +47,7 @@ cm1 AS (
 	  SUM(amount * fee_rate) AS payment_gateway_fees,
 	  SUM(amount_refunded_usd) AS refunds
 	FROM base
-	GROUP BY 1,2,3,4,5,6,7,8,9,10,11
+	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12
 ),
 
 delivery AS (

@@ -18,6 +18,7 @@ SELECT
 	cm.billing_reason,
 	cm.purchase_type,
 	sub_starts.create_date AS subscription_created,
+	cm.
 	SUM(COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd)) AS revenue_usd,
 	MIN(MIN(DATE_TRUNC(cm.purchase_date, MONTH))) OVER(PARTITION BY customer_id) AS cohort_month
 FROM finance_metrics.contribution_margin AS cm

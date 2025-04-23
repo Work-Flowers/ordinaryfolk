@@ -18,6 +18,7 @@ upgrades AS (
 	INNER JOIN segment.tracks AS t
 		ON u.message_id = t.message_id
 	GROUP BY 1,2
+	ORDER BY 1 DESC
 ),
 
 new_customers AS (
@@ -70,3 +71,5 @@ LEFT JOIN upgrades
 LEFT JOIN new_customers AS nc
 	ON k.date = nc.date
 	AND k.region = nc.region
+	
+ORDER BY  2, 1 DESC

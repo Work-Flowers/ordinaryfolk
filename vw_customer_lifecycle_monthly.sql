@@ -61,4 +61,4 @@ SELECT
 	SUM(lagged_mrr) AS lagged_mrr
 FROM customer_lifecyle
 GROUP BY 1,2,3
-ORDER BY 1,2,3
+ORDER BY 1,2,3```

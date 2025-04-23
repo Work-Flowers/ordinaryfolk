@@ -1,5 +1,5 @@
 /* ───────────────────────────
-1.  Monthly MRR per customer  (your query, untouched except an alias)
+1.  Monthly MRR per customer
 ─────────────────────────── */
 WITH monthly_obs AS (
 	SELECT
@@ -16,10 +16,7 @@ WITH monthly_obs AS (
 	WHERE
 		obs_date = DATE_TRUNC(obs_date, MONTH)
 		OR mrr_usd = 0
-	GROUP BY
-		1,
-		2,
-		3
+	GROUP BY 1, 2, 3
 ),
 /* ───────────────────────────
 2.  First‑month and today’s month per customer
@@ -30,16 +27,11 @@ customer_span AS (
 		customer_id,
 		MIN(month_start) AS first_month,
 		DATE_TRUNC(CURRENT_DATE(), MONTH) AS last_month
-	FROM
-		monthly_obs
-	GROUP BY
-		1,
-		2
+	FROM monthly_obs
+	GROUP BY 1, 2
 ),
 /* ───────────────────────────
 3.  Generate a month series for each customer
-GENERATE_DATE_ARRAY() is BigQuery syntax;
-Snowflake → ARRAY_GENERATE_RANGE / DATE_ADD()
 ─────────────────────────── */
 calendar AS (
 	SELECT

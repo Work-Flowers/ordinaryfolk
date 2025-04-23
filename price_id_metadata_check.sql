@@ -8,7 +8,6 @@ WITH price_condition AS (
 	INNER JOIN all_stripe.product AS pr
 		ON px.product_id = pr.id
 		AND pr.active IS TRUE	
-
 )
 
 SELECT
@@ -38,4 +37,4 @@ WHERE
 	AND ch.status = 'succeeded'
 	AND ch.invoice_id IS NULL
 	-- at least one of the two price_id metadata fields is populated
-	AND COALESCE(JSON_EXTRACT_SCALAR(pi.metadata, '$.paymentIntentPriceId'), JSON_EXTRACT_SCALAR(pi.metadata, '$.stripePriceIds')) IS NOT NULL
+	AND LOWER(COALESCE(pi_price_id.product_name, stripe_price_ids.product_name)) LIKE 'tele%'

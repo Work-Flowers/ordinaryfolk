@@ -2,7 +2,7 @@ DROP VIEW IF EXISTS finance_metrics.customer_lifecyle;
 CREATE VIEW finance_metrics.customer_lifecyle AS 
 
 WITH customers_monthly AS (
-	SELECTœ
+	SELECT
 		region,
 		customer_id,
 		CASE 

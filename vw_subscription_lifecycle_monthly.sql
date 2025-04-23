@@ -1,5 +1,5 @@
--- DROP VIEW IF EXISTS finance_metrics.subscription_lifecyle_monthly;
--- CREATE VIEW finance_metrics.subscription_lifecyle_monthly AS 
+DROP VIEW IF EXISTS finance_metrics.subscription_lifecyle_monthly;
+CREATE VIEW finance_metrics.subscription_lifecyle_monthly AS 
 
 -- one row per subscription_id x condition per month in which it was active
 -- also include one row with 0 MRR for the first month AFTER cancellation, so we can identify churn 
