@@ -52,6 +52,9 @@ stripe_data AS (
 				ELSE ch.amount
 				END
 			) * ii.amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS line_item_amount_usd,
+		-- note that all_stripe.product_cost does not include COGS for teleconsults
+		-- those are updated manually on a monthly basis in google_sheets.opex
+		-- pipeline for finance_metrics.monthly_contribution_margin incorporates teleconsult COGS
 		pc.cogs / fx.fx_to_usd AS cogs,
 		pc.cashback,
 		t.rate AS gst_vat,
