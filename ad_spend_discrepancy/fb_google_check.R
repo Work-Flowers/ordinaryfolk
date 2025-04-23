@@ -68,7 +68,7 @@ df_google_bq_monthly <- df_google_raw |>
   group_by(ym) |> 
   summarise(across(cost_local, sum), .groups = "drop")
 
-df_google_compare <- df_google_manual |> 
+df_google_compare <- df_google_export_monthly |> 
   left_join(df_google_bq_monthly, by = "ym")
 
 

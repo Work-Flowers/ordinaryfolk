@@ -6,7 +6,7 @@ SELECT
 	cm.billing_reason,
 	cm.currency,
 	cm.new_existing,
-	cm.condition,
+-- 	cm.condition,
 	COUNT(DISTINCT cm.customer_id) AS n_customers,
 	COUNT(DISTINCT cm.charge_id) AS n_charges,
 	SUM(cm.revenue) AS revenue_usd,
@@ -25,4 +25,4 @@ SELECT
 FROM finance_metrics.cm3 AS cm
 LEFT JOIN ref.fx_rates AS fx
 	ON cm.currency = fx.currency
-GROUP BY 1,2,3,4,5,6,7,8
+GROUP BY 1,2,3,4,5,6,7

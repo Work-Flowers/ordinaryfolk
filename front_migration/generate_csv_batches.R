@@ -30,12 +30,17 @@ contacts_df <- df_raw |>
     `Last Transaction Date` = as.numeric(as.POSIXct(last_transaction_date, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
     ) |> 
   select(
+    Region = region,
     name,
     email,
     phone,
     `Stripe Customer ID` = customer_id,
     `Is Active Subscriber` = is_active_subscriber,
     `Last Transaction Date`
+  ) |> 
+  arrange(
+    Region,
+    email
   )
 
 # break into batches ------------------------------------------------------

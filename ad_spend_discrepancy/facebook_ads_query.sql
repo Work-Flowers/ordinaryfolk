@@ -15,7 +15,7 @@ SELECT
 	SUM(d.ctr * d.impressions / 100) AS clicks,
 	SUM(d.impressions) AS impressions,
 	SUM(d.spend) AS cost_local
-FROM facebook_ads.basic_ad_set AS d
+FROM facebook_ads.basic_ad AS d
 LEFT JOIN fb_account_currency AS a
 	ON CAST(d.account_id AS STRING) = a.account_id
 LEFT JOIN ref.fx_rates AS fx
