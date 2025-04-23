@@ -1,6 +1,8 @@
-DROP VIEW IF EXISTS finance_metrics.subscription_lifecyle_monthly;
-CREATE VIEW finance_metrics.subscription_lifecyle_monthly AS 
+-- DROP VIEW IF EXISTS finance_metrics.subscription_lifecyle_monthly;
+-- CREATE VIEW finance_metrics.subscription_lifecyle_monthly AS 
 
+-- one row per subscription_id x condition per month in which it was active
+-- also include one row with 0 MRR for the first month AFTER cancellation, so we can identify churn 
 WITH subscriptions_monthly AS (
 	SELECT
 		region,
@@ -16,30 +18,33 @@ WITH subscriptions_monthly AS (
 	WHERE 
 		(obs_date = DATE_TRUNC(obs_date, MONTH) OR mrr_usd = 0)
 	GROUP BY 1,2,3,4
-	ORDER BY 2,4
 ),
 
-customers_lagged AS (
+-- find the lagged MRR for each subscription
+subscriptions_lagged AS (
 	SELECT
 		region,
-		customer_id,
+		subscription_id,
+		condition,
 		obs_date,
 		mrr_usd AS current_mrr,
-		MIN(obs_date) OVER(PARTITION BY customer_id) AS acq_date,
+		MIN(obs_date) OVER (PARTITION BY subscription_id, condition) AS acq_date,
 		LAG(mrr_usd) OVER (
-			PARTITION BY customer_id
+			PARTITION BY subscription_id, condition
 			ORDER BY obs_date
 		) AS lagged_mrr
-	FROM customers_monthly
+	FROM subscriptions_monthly
 
 ),
 
-customer_lifecyle AS(
+-- now assign lifecycle category
+subscriptions_lifecyle AS(
 	SELECT
 		region,
 		obs_date,
 		acq_date,
-		customer_id,
+		subscription_id,
+		condition,
 		current_mrr,
 		lagged_mrr,
 		CASE 
@@ -50,16 +55,17 @@ customer_lifecyle AS(
 			WHEN current_mrr < lagged_mrr THEN 'Contraction'
 			WHEN current_mrr = lagged_mrr THEN 'Retention'
 			END AS lifecyle
-	FROM customers_lagged
+	FROM subscriptions_lagged
+	WHERE current_mrr > 0 OR lagged_mrr IS NOT NULL
 )
 
 SELECT 
 	region,
 	obs_date,
 	lifecyle,
-	COUNT(DISTINCT customer_id) AS n_customers,
+	condition,
+	COUNT(DISTINCT subscription_id) AS n_subscriptions,
 	SUM(current_mrr) AS current_mrr,
 	SUM(lagged_mrr) AS lagged_mrr
-FROM customer_lifecyle
-GROUP BY 1,2,3
-ORDER BY 1,2,3```
+FROM subscriptions_lifecyle
+GROUP BY 1,2,3,4
