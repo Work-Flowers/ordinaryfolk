@@ -8,6 +8,19 @@ WITH sub_starts AS (
 	FROM all_stripe.subscription_history
 ),
 
+-- all price_ids related to a Teleconsultation
+tel AS (
+	SELECT
+		px.id AS price_id,
+		px.product_id,
+		pr.name AS product_name,
+		JSON_VALUE(pr.metadata, '$.condition') AS condition
+	FROM all_stripe.price AS px
+	INNER JOIN all_stripe.product AS pr
+		ON px.product_id = pr.id
+		AND LOWER(pr.name) LIKE '%tele%'
+),
+
 stripe_data AS (
 	SELECT
 		'Stripe' AS sales_channel,
@@ -27,10 +40,10 @@ stripe_data AS (
 		ch.amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS total_charge_amount_usd,
 		COALESCE(ch.amount_refunded / ch.amount, 0) AS refund_rate,
 		ch.amount_refunded / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS amount_refunded_usd,
-		prod.id AS product_id,
-		prod.name AS product_name,
-		px.id AS price_id,
-		JSON_EXTRACT_SCALAR(prod.metadata, '$.condition') AS condition,
+		COALESCE(prod.id, tel.product_id) AS product_id,
+		COALESCE(prod.name, tel.product_name) AS product_name,
+		COALESCE(px.id, tel.price_id) AS price_id,
+		COALESCE(JSON_EXTRACT_SCALAR(prod.metadata, '$.condition'), tel.condition) AS condition,
 		COALESCE(ii.quantity, 1) AS quantity,
 		ch.currency,
 		ch.amount / (
@@ -46,6 +59,8 @@ stripe_data AS (
 		pc.packaging / fx.fx_to_usd AS packaging,
 		MIN(DATE(ch.created)) OVER(PARTITION BY ch.customer_id) AS acquisition_date
 	FROM all_stripe.charge AS ch
+	INNER JOIN all_stripe.payment_intent AS pi
+		ON ch.payment_intent_id = pi.id
 	LEFT JOIN all_stripe.customer AS cust
 		ON ch.customer_id = cust.id
 	INNER JOIN all_stripe.balance_transaction AS bt
@@ -67,6 +82,8 @@ stripe_data AS (
 	LEFT JOIN ref.tax_rate_history AS t
 		ON ch.region = t.region
 		AND DATE(ch.created)  BETWEEN t.from_date AND t.to_date
+	LEFT JOIN tel
+		ON COALESCE(JSON_EXTRACT_SCALAR(pi.metadata, '$.paymentIntentPriceId'), JSON_EXTRACT_SCALAR(pi.metadata, '$.stripePriceIds')) = tel.price_id
 	WHERE
 		ch.status = 'succeeded'
 ),
