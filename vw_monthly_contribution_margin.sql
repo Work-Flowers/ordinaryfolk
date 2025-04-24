@@ -5,6 +5,7 @@ WITH cm1 AS (
 	SELECT
 		region AS country,
 		DATE_TRUNC(purchase_date, MONTH) AS date,
+		purchase_type,
 		COALESCE(condition, 'N/A') AS condition,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd)) AS amount,
 		SUM(cogs) AS cogs,
@@ -18,7 +19,7 @@ WITH cm1 AS (
 		SUM(cm.amount_refunded_usd) AS refunds
 	FROM finance_metrics.contribution_margin AS cm
 	WHERE purchase_type = 'Subscription'
-	GROUP BY 1,2,3
+	GROUP BY 1,2,3,4
 ),
 
 cm1_with_teleconsult_fees AS (
@@ -27,6 +28,7 @@ cm1_with_teleconsult_fees AS (
 		cm1.date,
 		cm1.condition,
 		cm1.amount,
+		cm1.purchase_type,
 		COALESCE(cm1.cogs, -op.teleconsultation_fees / fx.fx_to_usd) AS cogs,
 		cm1.packaging,
 		cm1.cashback,
