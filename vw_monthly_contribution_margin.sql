@@ -8,7 +8,7 @@ WITH cm1 AS (
 		purchase_type,
 		COALESCE(condition, 'N/A') AS condition,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd)) AS amount,
-		SUM(cogs) AS cogs,
+		SUM(cogs * quantity) AS cogs,
 		SUM(packaging) AS packaging,
 		SUM(cashback) AS cashback,
 		-- correct the calculation of tax amount paid, since Stripe line item and charge amounts are inclusive of tax
