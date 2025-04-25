@@ -61,8 +61,9 @@ marketing_spend AS (
         LOWER(country_code) AS country,
         channel,
         COALESCE(condition, 'N/A') AS condition,
-        SUM(cost_usd) AS cost_usd
-    FROM cac.marketing_spend 
+        SUM(cost_usd) AS cost_usd,
+        SUM(impressions) AS impressions
+    FROM cac.marketing_spend
     GROUP BY 1,2,3,4
 ),
 
@@ -130,6 +131,7 @@ SELECT
     k.country,
     k.channel,
     k.condition,
+    COALESCE(ms.impressions, 0) AS ad_impressions,
     COALESCE(ms.cost_usd, 0) AS cost_usd,
     COALESCE(sup.n, 0) AS n_signups,
     COALESCE(q.n, 0) AS n_q3_completions,
