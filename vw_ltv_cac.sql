@@ -29,7 +29,7 @@ gm_inputs AS (
 	SELECT
 		country,
 		date,
-		amount - refunds - gst_vat AS net_revenue,
+		amount - refunds - tax_paid_usd AS net_revenue,
 		cogs,
 		marketing_cost
 	FROM finance_metrics.monthly_contribution_margin
