@@ -30,7 +30,7 @@ SELECT
 	cm.cogs,
 	cm.cashback,
 	cm.packaging,
-	cm.gst_vat,
+	cm.tax_paid_usd,
 	cm.refunds,
 	cm.payment_gateway_fees,
 	cm.delivery_cost,
