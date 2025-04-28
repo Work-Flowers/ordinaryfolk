@@ -7,7 +7,9 @@ WITH marketing AS (
 		date,
 		COALESCE(condition, 'N/A') AS condition,
 		LOWER(country_code) AS country,
-		SUM(cost_usd) AS spend
+		SUM(ROUND(cost_usd, 2)) AS spend,
+		SUM(impressions) AS impressions,
+		SUM(ROUND(clicks, 0)) AS clicks
 	FROM cac.marketing_spend
 	GROUP BY 1,2,3
 ),
