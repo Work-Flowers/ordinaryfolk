@@ -34,6 +34,7 @@ stripe_data AS (
 		ch.customer_id,
 		cust.email,
 		ch.id AS charge_id,
+		JSON_VALUE(ch.metadata, '$.orderId') AS order_sys_id,
 		ch.payment_intent_id,
 		inv.subscription_id,
 		DATE(ch.created) AS purchase_date,
@@ -102,6 +103,7 @@ tiktok_data AS(
 		tik.buyer_username AS customer_id,
 		CAST(NULL AS STRING) AS email,
 		CAST(tik.order_id AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		tik.created_time AS purchase_date,
@@ -170,6 +172,7 @@ shopee_data AS (
 		so.username_buyer_ AS customer_id,
 		CAST(NULL AS STRING) AS email,
 		CAST(NULL AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		DATE(so.payout_completed_date) AS purchase_date,
@@ -214,6 +217,7 @@ sg_cod_data AS (
 		o.email AS customer_id,
 		o.email,
 		CAST(NULL AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		o.date AS purchase_date,
@@ -257,6 +261,7 @@ hk_cod_data AS (
 		o.email AS customer_id,
 		o.email,
 		CAST(NULL AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		o.date AS purchase_date,
@@ -312,6 +317,7 @@ atome_final AS (
 		o.patient_id AS customer_id,
 		p.email,
 		am.atome_order_id AS charge_id,
+		o.sys_id AS order_sys_id,
 		o.stripe_payment_intent_id AS payment_intent_id,
 		o.stripe_subscription_id AS subscription_id,
 		aod.order_date AS purchase_date,
@@ -349,7 +355,7 @@ atome_final AS (
 	LEFT JOIN ref.tax_rate_history AS t
 		ON 'sg' = t.region
 		AND am.transaction_time  BETWEEN t.from_date AND t.to_date
-	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,15,16,17,18,19,20,22,23,24,26
+	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,16,17,18,19,21,23,24,25,27
 	HAVING SUM(GREATEST(am.transaction_amount, 0)) > 0
 ),
 
@@ -383,6 +389,7 @@ unioned_data AS (
 		CAST(NULL AS STRING) AS customer_id,
 		CAST(NULL AS STRING) AS email,
 		CAST(NULL AS STRING) AS charge_id,
+		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
 		purchase_date,
