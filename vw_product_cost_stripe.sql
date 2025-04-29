@@ -3,6 +3,7 @@ CREATE VIEW all_stripe.product_cost AS
 
 WITH manual_inputs AS (
 	SELECT
+		'sg' AS region,
 		id AS product_id,
 		cost_box,
 		packaging_cost,
@@ -13,6 +14,7 @@ WITH manual_inputs AS (
 	UNION ALL
 	
 	SELECT
+		'hk' AS region,
 		id AS product_id,
 		cost_box,
 		packaging_cost,
@@ -23,6 +25,7 @@ WITH manual_inputs AS (
 	UNION ALL
 	
 	SELECT
+		'jp' AS region,
 		id AS product_id,
 		cost_box,
 		packaging_cost,
@@ -44,4 +47,5 @@ SELECT
 FROM manual_inputs AS mi
 LEFT JOIN all_stripe.price AS px
 	ON mi.product_id = px.product_id
+	AND mi.region = px.region
 	
