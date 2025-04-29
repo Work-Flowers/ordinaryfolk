@@ -47,6 +47,12 @@ google_campaigns AS (
 		ch.name
 	FROM google_ads.campaign_history AS ch
 	QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY ch.updated_at DESC) = 1
+),
+
+google_ad_history AS (
+	SELECT *
+	FROM google_ads.ad_history
+	QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY updated_at DESC) = 1
 )
 
 SELECT
@@ -64,7 +70,7 @@ SELECT
 	SUM(s.cost_micros) / 1000000 AS cost_local, 	
 	SUM(s.cost_micros / fx.fx_to_usd) / 1000000 AS cost_usd 
 FROM google_ads.ad_stats AS s
-LEFT JOIN google_ads.ad_history AS ah
+LEFT JOIN google_ad_history AS ah
 	ON s.ad_id = ah.id
 LEFT JOIN ga_targeting AS c
 	ON s.campaign_id = c.campaign_id
