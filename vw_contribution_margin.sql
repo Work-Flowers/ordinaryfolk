@@ -83,6 +83,7 @@ stripe_data AS (
 		ON px.product_id = prod.id
 	LEFT JOIN all_stripe.product_cost AS pc
 		ON px.id = pc.price_id
+		AND DATE(ch.created) BETWEEN pc.from_date AND pc.to_date
 	LEFT JOIN ref.tax_rate_history AS t
 		ON ch.region = t.region
 		AND DATE(ch.created)  BETWEEN t.from_date AND t.to_date
@@ -240,8 +241,10 @@ sg_cod_data AS (
 	FROM finance_metrics.cod_sg_orders_all AS o
 	LEFT JOIN ref.fx_rates AS fx
 		ON o.currency = fx.currency
-	LEFT JOIN google_sheets.sg_product_cost_stripe AS c
-		ON o.product_id = c.id
+	LEFT JOIN all_stripe.product_cost_per_box AS c
+		ON o.product_id = c.product_id
+		AND o.date BETWEEN c.from_date AND c.to_date
+		AND c.region = 'sg'
 	LEFT JOIN all_stripe.product AS prod
 		ON o.product_id = prod.id
 	LEFT JOIN google_sheets.condition_transaction_type_map AS cttp
@@ -284,8 +287,10 @@ hk_cod_data AS (
 	FROM finance_metrics.cod_hk_orders_all AS o
 	LEFT JOIN ref.fx_rates AS fx
 		ON o.currency = fx.currency
-	LEFT JOIN google_sheets.hk_product_cost_stripe AS c
-		ON o.product_id = c.id
+	LEFT JOIN all_stripe.product_cost_per_box AS c
+		ON o.product_id = c.product_id
+		AND o.date BETWEEN c.from_date AND c.to_date
+		AND c.region = 'hk'
 	LEFT JOIN all_stripe.product AS prod
 		ON o.product_id = prod.id
 	LEFT JOIN google_sheets.condition_transaction_type_map AS cttp
@@ -352,6 +357,7 @@ atome_final AS (
 		ON px.product_id = prod.id
 	LEFT JOIN all_stripe.product_cost AS pc
 		ON COALESCE(o.prescription_price_id, o.price_id) = pc.price_id
+		AND aod.order_date BETWEEN (pc.from_date) AND pc.to_date
 	LEFT JOIN ref.tax_rate_history AS t
 		ON 'sg' = t.region
 		AND am.transaction_time  BETWEEN t.from_date AND t.to_date
