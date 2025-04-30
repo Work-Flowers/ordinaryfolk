@@ -59,7 +59,6 @@ SELECT
 	'google_ads' AS channel,
 	s.date,
 	google_campaigns.name AS campaign_name,
-	CAST(s.ad_id AS STRING) AS ad_id,
 	ccm.condition,
 	a.currency_code,
 	g.country_code,
@@ -69,13 +68,11 @@ SELECT
 	-- Convert micros to standard currency
 	SUM(s.cost_micros) / 1000000 AS cost_local, 	
 	SUM(s.cost_micros / fx.fx_to_usd) / 1000000 AS cost_usd 
-FROM google_ads.ad_stats AS s
-LEFT JOIN google_ad_history AS ah
-	ON s.ad_id = ah.id
+FROM google_ads.campaign_stats AS s
 LEFT JOIN ga_targeting AS c
-	ON s.campaign_id = c.campaign_id
+	ON s.id = c.campaign_id
 LEFT JOIN google_campaigns
-	ON s.campaign_id = google_campaigns.id
+	ON s.id = google_campaigns.id
 LEFT JOIN google_ads.geo_target AS g
 	ON c.geo_target_constant_id = g.id
 LEFT JOIN ga_account_currency AS a
@@ -84,7 +81,7 @@ LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(a.currency_code) = fx.currency
 LEFT JOIN google_sheets.campaign_condition_map AS ccm
 	ON google_campaigns.name = ccm.campaign_name
-GROUP BY 1,2,3,4,5,6,7,8
+GROUP BY 1,2,3,4,5,6,7
 
 UNION ALL
 
@@ -92,7 +89,6 @@ SELECT
 	'facebook_ads' AS channel,
 	d.date,
 	d.campaign_name,
-	d.ad_id,
 	ccm.condition,
 	a.currency AS currency_code,
     REGEXP_REPLACE(ash.targeting_geo_locations_countries, r'[\[\]"]', '') AS country_code,
@@ -114,7 +110,7 @@ LEFT JOIN google_sheets.campaign_condition_map AS ccm
 	ON d.campaign_name = ccm.campaign_name
 WHERE
     (d.reach > 0 OR d.ctr > 0 or d.spend > 0)
-GROUP BY 1,2,3,4,5,6,7
+GROUP BY 1,2,3,4,5,6
 
 UNION ALL
 
@@ -122,7 +118,6 @@ SELECT
 	'taboola' AS channel,
 	plat.date,
 	tc.name AS campaign_name,
-	CAST(NULL AS STRING) AS ad_id,
 	ccm.condition,
 	plat.currency AS currency_code,
 	tgt.value AS country_code,
@@ -140,7 +135,7 @@ LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(plat.currency) = LOWER(fx.currency)
 LEFT JOIN google_sheets.campaign_condition_map AS ccm
 	ON tc.name = ccm.campaign_name
-GROUP BY 1,2,3,4,5,6,7
+GROUP BY 1,2,3,4,5,6
 
 UNION ALL
 
@@ -148,7 +143,6 @@ SELECT
 	man.supplier AS channel,
 	man.date,
 	CAST(NULL AS STRING) AS campaign_name,
-	CAST(NULL AS STRING) AS ad_id,
 	man.condition, 
 	man.currency AS currency_code,
 	man.country AS country_code,
@@ -160,4 +154,4 @@ SELECT
 FROM google_sheets.manual_ad_spend AS man
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(man.currency) = fx.currency
-GROUP BY 1,2,3,4,5,6,7,8,9,10
+GROUP BY 1,2,3,4,5,6,7,8,9
