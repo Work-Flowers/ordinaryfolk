@@ -126,8 +126,9 @@ tiktok_data AS(
 		tok.packaging / fx.fx_to_usd AS packaging,
 		MIN(DATE(tik.created_time)) OVER(PARTITION BY tik.buyer_username) AS acquisition_date
 	FROM google_sheets.tiktok_orders AS tik
-	LEFT JOIN google_sheets.tiktok_cogs AS tok
+	LEFT JOIN finance_metrics.tiktok_product_costs AS tok
 		ON tik.sku_id = tok.sku_id
+		AND tik.created_time BETWEEN tok.from_date AND tok.to_date
 	LEFT JOIN ref.fx_rates AS fx
 		ON LOWER(tik.currency) = LOWER(fx.currency)
 	LEFT JOIN ref.tax_rate_history AS t
@@ -158,8 +159,9 @@ lazada_data AS (
 	FROM google_sheets.lazada_orders AS o
 	LEFT JOIN ref.fx_rates AS fx
 		ON LOWER(o.currency) = fx.currency
-	LEFT JOIN google_sheets.lazada_cogs AS lc
+	LEFT JOIN finance_metrics.lazada_product_costs AS lc
 		ON o.seller_sku = lc.seller_sku
+		AND o.transaction_date BETWEEN lc.from_date AND lc.to_date
 	GROUP BY 1,2,3,4,5,6
 ),
 
@@ -198,9 +200,10 @@ shopee_data AS (
 		ON LOWER(so.currency) = fx.currency
 	LEFT JOIN google_sheets.shopee_order_quantities AS q
 		ON so.order_id = q.order_id
-	LEFT JOIN google_sheets.shopee_cogs AS sc
+	LEFT JOIN finance_metrics.shopee_product_costs AS sc
 		ON so.product_id = sc.product_id
 		AND q.sku_reference_no_ = sc.sku_reference_no_
+		AND DATE(so.payout_completed_date) BETWEEN sc.from_date AND sc.to_date
 	LEFT JOIN google_sheets.condition_transaction_type_map AS cttp
 		ON sc.condition = cttp.condition
 	LEFT JOIN ref.tax_rate_history AS t
