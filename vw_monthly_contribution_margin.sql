@@ -43,7 +43,7 @@ cm1_with_teleconsult_fees AS (
 	FROM cm1
 	LEFT JOIN google_sheets.opex AS op
 		ON cm1.date = op.date
-		AND cm1.country = op.country
+		AND LOWER(cm1.country) = LOWER(op.country)
 		AND cm1.condition = 'Services'
 	LEFT JOIN ref.fx_rates AS fx
 		ON LOWER(op.currency) = fx.currency
