@@ -6,7 +6,7 @@ WITH cm1 AS (
 		region AS country,
 		DATE_TRUNC(purchase_date, MONTH) AS date,
 		purchase_type,
-		new_existing,
+		COALESCE(new_existing, 'New') AS new_existing,
 		sales_channel,
 		COALESCE(condition, 'N/A') AS condition,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd)) AS amount,
@@ -33,7 +33,10 @@ cm1_with_teleconsult_fees AS (
 		cm1.purchase_type,
 		cm1.new_existing,
 		cm1.sales_channel,
-		COALESCE(-op.teleconsultation_fees / fx.fx_to_usd * cm1.amount / SUM(cm1.amount) OVER (PARTITION BY cm1.country, cm1.date, cm1.condition), cm1.cogs) AS cogs,
+		CASE 
+			WHEN cm1.condition = 'Services' THEN -op.teleconsultation_fees / fx.fx_to_usd * cm1.amount / SUM(cm1.amount) OVER (PARTITION BY cm1.country, cm1.date, cm1.condition)
+			ELSE cm1.cogs
+			END AS cogs,
 		cm1.packaging,
 		cm1.cashback,
 		cm1.tax_paid_usd,
@@ -73,6 +76,8 @@ marketing AS (
 
 SELECT
 	cwt.*,
+	cwt.amount - cwt.refunds - cwt.tax_paid_usd AS net_revenue,
+	cwt.amount - cwt.refunds - cwt.tax_paid_usd - COALESCE(cwt.cogs, 0) AS gross_profit,
 	delivery.cost * cwt.amount / SUM(cwt.amount) OVER (PARTITION BY cwt.date, cwt.country) AS delivery_cost,
 	mar.cost * cwt.amount / SUM(cwt.amount) OVER (PARTITION BY cwt.date, cwt.country, cwt.condition) AS marketing_cost
 FROM cm1_with_teleconsult_fees AS cwt
