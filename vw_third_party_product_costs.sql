@@ -17,7 +17,7 @@ CREATE VIEW finance_metrics.shopee_product_costs AS
 SELECT
 	sc.* EXCEPT(effective_date),
 	effective_date AS from_date,
-	COALESCE(LEAD(effective_date, 1) OVER (PARTITION BY sku_reference_no_ ORDER BY effective_date), '9999-12-31') AS to_date
+	COALESCE(LEAD(effective_date, 1) OVER (PARTITION BY sku_reference_no_, product_id ORDER BY effective_date), '9999-12-31') AS to_date
 FROM google_sheets.shopee_cogs AS sc;	
 
 -- tiktok

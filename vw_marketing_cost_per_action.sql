@@ -62,7 +62,8 @@ marketing_spend AS (
         channel,
         COALESCE(condition, 'N/A') AS condition,
         SUM(cost_usd) AS cost_usd,
-        SUM(impressions) AS impressions
+        SUM(impressions) AS impressions,
+        SUM(clicks) AS clicks
     FROM cac.marketing_spend
     GROUP BY 1,2,3,4
 ),
@@ -133,6 +134,7 @@ SELECT
     k.condition,
     COALESCE(ms.impressions, 0) AS ad_impressions,
     COALESCE(ms.cost_usd, 0) AS cost_usd,
+    COALESCE(ms.clicks, 0) AS clicks,
     COALESCE(sup.n, 0) AS n_signups,
     COALESCE(q.n, 0) AS n_q3_completions,
     COALESCE(cc.n, 0) AS n_checkouts_completed,
