@@ -18,7 +18,8 @@ WITH cm1 AS (
 			(COALESCE(line_item_amount_usd, total_charge_amount_usd) - amount_refunded_usd)  * (1 - 1 / (1 + gst_vat))
 		) AS tax_paid_usd,
 		SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd) * fee_rate) AS payment_gateway_fees,
-		SUM(cm.amount_refunded_usd) AS refunds
+		SUM(cm.amount_refunded_usd) AS refunds,
+		COUNT(DISTINCT charge_id) AS n_orders
 	FROM finance_metrics.contribution_margin AS cm
 -- 	WHERE purchase_type = 'Subscription'
 	GROUP BY 1,2,3,4,5,6),
@@ -37,7 +38,8 @@ cm1_with_teleconsult_fees AS (
 		cm1.cashback,
 		cm1.tax_paid_usd,
 		cm1.payment_gateway_fees,
-		cm1.refunds
+		cm1.refunds,
+		cm1.n_orders
 	FROM cm1
 	LEFT JOIN google_sheets.opex AS op
 		ON cm1.date = op.date
