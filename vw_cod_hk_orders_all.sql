@@ -1,6 +1,14 @@
 DROP VIEW IF EXISTS finance_metrics.cod_hk_orders_all;
 CREATE VIEW finance_metrics.cod_hk_orders_all AS 
 
+WITH hk_skus AS (
+	SELECT DISTINCT
+		sku,
+		id
+	FROM google_sheets.hk_product_cost_stripe
+	
+)
+
 SELECT
 	a.purchase_date AS date,
 	a.email,
@@ -22,5 +30,5 @@ SELECT
 FROM google_sheets.sf_express_airway_bills AS aw
 LEFT JOIN google_sheets.sf_express_line_items AS li
 	ON aw.yun_dan_bian_hao_awb_no_ = li.yun_dan_bian_hao_awb_no_
-LEFT JOIN google_sheets.hk_product_cost_stripe AS pc
+LEFT JOIN hk_skus AS pc
 	ON LOWER(li.sku) = LOWER(pc.sku);

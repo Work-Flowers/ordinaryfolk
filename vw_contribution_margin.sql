@@ -86,7 +86,7 @@ stripe_data AS (
 		AND DATE(ch.created) BETWEEN pc.from_date AND pc.to_date
 	LEFT JOIN ref.tax_rate_history AS t
 		ON ch.region = t.region
-		AND DATE(ch.created)  BETWEEN t.from_date AND t.to_date
+		AND DATE(ch.created) BETWEEN t.from_date AND t.to_date
 	LEFT JOIN tel
 		ON COALESCE(JSON_EXTRACT_SCALAR(pi.metadata, '$.paymentIntentPriceId'), JSON_EXTRACT_SCALAR(pi.metadata, '$.stripePriceIds')) = tel.price_id
 	WHERE
