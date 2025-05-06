@@ -33,7 +33,7 @@ cm1_with_teleconsult_fees AS (
 		cm1.purchase_type,
 		cm1.new_existing,
 		cm1.sales_channel,
-		COALESCE(cm1.cogs, -op.teleconsultation_fees / fx.fx_to_usd) AS cogs,
+		COALESCE(-op.teleconsultation_fees / fx.fx_to_usd * cm1.amount / SUM(cm1.amount) OVER (PARTITION BY cm1.country, cm1.date, cm1.condition), cm1.cogs) AS cogs,
 		cm1.packaging,
 		cm1.cashback,
 		cm1.tax_paid_usd,
