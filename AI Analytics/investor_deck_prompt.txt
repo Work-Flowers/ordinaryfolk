@@ -48,6 +48,20 @@ Each row represents monthly marketing performance by channel and segment. Column
 * `n_consultations`: Completed online consultations.
 * `n_q3_completions`: Number of customers who completed a stage-3 onboarding form.
 
+### 3. Customer Acquisition Cost (CAC) Metrics
+
+\* \`date\`: The calendar month of the record.
+
+\* \`country\`: Geographic region (e.g. sg, hk, jp).
+
+\* \`condition\`: The medical condition or treatment category associated with the purchase (e.g. Weight Loss, Hair Loss).
+
+\* \`marketing\_spend\`: Total advertising/marketing spend for the month in USD.
+
+\* \`n\_new\_customers\`: Number of new customers acquired that month.
+
+Derived field: **Customer Acquisition Cost (CAC)** = marketing\_spend / n\_new\_customers
+
 ---
 
 ### 🎯 Your Objective:
@@ -58,9 +72,9 @@ Produce a structured, investor-grade narrative commentary focused on performance
 
 Emphasise trends from the **most recent 1–2 months**, while still providing relevant year-over-year comparisons. Ensure that each insight is **backed by specific metrics** wherever possible.
 
-**Do not reference rows where `country` or `condition` are labelled as 'N/A' in the final commentary. These rows may be used for aggregate metrics but should not be cited directly.**
+**Do not reference rows where ************************************************************************`country`************************************************************************ or ************************************************************************`condition`************************************************************************ are labelled as 'N/A' in the final commentary. These rows may be used for aggregate metrics but should not be cited directly.**
 
-Structure your output into **four clearly labelled sections**, using bullet points in each:
+Structure your output into **five clearly labelled sections**, using bullet points in each:, using bullet points in each:
 
 ---
 
@@ -81,16 +95,13 @@ Structure your output into **four clearly labelled sections**, using bullet poin
 * Explain any major OPEX or staffing changes impacting EBITDA.
 * Where applicable, report “underlying” EBITDA excluding exceptional costs (e.g. “Excluding \$38K investment in internal tooling, EBITDA margin would be 9%”).
 
-**AOV (Average Order Value)**
+**Customer Acquisition Cost (CAC)**
+
+* Report CAC by country where available, using: CAC = marketing spend / new customers acquired.
+* Highlight best and worst-performing segments (e.g. “SG  CAC dropped from \$125 to \$88 MoM”).
+* Quantify CAC trends and explain changes if patterns in spend or volume support them (e.g. “CAC rose in HK  as spend remained flat while new customer volume fell 18%”).
+
+**AOV (Average Order Value)**\*\*
 
 * Report AOV figures for the latest 1–2 months and describe changes (e.g. “AOV rose from \$155 to \$172 MoM”).
 * Tie changes to shifts in product mix or purchase type (e.g. “Driven by higher Weight Loss subscriptions and reduced discounting”).
-
----
-
-### 🧠 Tone and Guidelines:
-
-* Each bullet point must include **specific numeric values** to support the insight (e.g. \$ figures, growth percentages, margins).
-* You may offer **plausible causal explanations** if supported by aligned patterns across the data.
-* Avoid generalities—always back claims with recent month-specific data.
-* Your response must be concise, insight-driven, and directly usable in an investor update.
