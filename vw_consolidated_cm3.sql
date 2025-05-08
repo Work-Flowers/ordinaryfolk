@@ -1,5 +1,5 @@
--- DROP VIEW IF EXISTS finance_metrics.consolidated_cm3;
--- CREATE VIEW finance_metrics.consolidated_cm3 AS 
+DROP VIEW IF EXISTS finance_metrics.consolidated_cm3;
+CREATE VIEW finance_metrics.consolidated_cm3 AS 
 
 WITH
 
@@ -85,52 +85,62 @@ opex AS (
 	JOIN  ref.fx_rates AS fx 
 		ON LOWER(o.currency) = fx.currency
 	GROUP BY 1,2
-)
-SELECT
-	b.* EXCEPT (cogs),
-	CASE 
-		WHEN b.condition = 'Services' THEN o.teleconsultation_fees * b.amount / SUM(b.amount) OVER (PARTITION BY b.country, b.month, b.condition)
-		ELSE b.cogs
-		END AS cogs,
+),
 
-	-- Base profitability
--- 	b.amount - b.refunds - b.tax_paid_usd AS net_revenue,
--- 	b.amount - b.refunds - b.tax_paid_usd - b.cogs AS gross_profit,  
-	
-	-- Prorated delivery cost
-	SAFE_DIVIDE(
-		b.amount,
-		SUM(b.amount) OVER (PARTITION BY b.month, b.country)
-	) * COALESCE(d.total_delivery_cost, 0) AS delivery_cost,
-  
-  -- Prorated marketing cost
-	SAFE_DIVIDE(
-		b.amount,
-		SUM(b.amount) OVER (PARTITION BY b.month, b.country, b.condition)
-	) * COALESCE(m.total_marketing_cost, 0) AS marketing_cost,
-  
-  -- Prorated OPEX lines
-	SAFE_DIVIDE(
-		b.amount,
-		SUM(b.amount) OVER (PARTITION BY b.month, b.country)
-	) * COALESCE(o.dispensing_fees, 0) AS dispensing_fees,
-  
-	SAFE_DIVIDE(
-		b.amount,
-		SUM(b.amount) OVER (PARTITION BY b.month, b.country)
-	) * COALESCE(o.operating_expense, 0) AS operating_expense,
-	SAFE_DIVIDE(
-		b.amount,
-		SUM(b.amount) OVER (PARTITION BY b.month, b.country)
-	) * COALESCE(o.staff_cost, 0) AS staff_cost
-FROM base AS b
-LEFT JOIN delivery AS d 
-	ON b.month = d.month
-  	AND LOWER(b.country) = d.country
-LEFT JOIN marketing AS m 
-	ON b.month = m.month
-	AND LOWER(b.country) = m.country
-	AND b.condition = m.condition
-LEFT JOIN opex AS o 
-	ON b.month = o.month
-	AND LOWER(b.country) = o.country;
+-- put it all together, and set COGS to teleconsult fee expense for Services transactions
+base_with_opex AS (
+	SELECT
+		b.* EXCEPT (cogs),
+		CASE 
+			WHEN b.condition = 'Services' THEN o.teleconsultation_fees * b.amount / SUM(b.amount) OVER (PARTITION BY b.country, b.month, b.condition)
+			ELSE b.cogs
+			END AS cogs,
+			
+		-- Prorated delivery cost
+		SAFE_DIVIDE(
+			b.amount,
+			SUM(b.amount) OVER (PARTITION BY b.month, b.country)
+		) * COALESCE(d.total_delivery_cost, 0) AS delivery_cost, 
+	  
+	  -- Prorated marketing cost
+		SAFE_DIVIDE(
+			b.amount,
+			SUM(b.amount) OVER (PARTITION BY b.month, b.country, b.condition)
+		) * COALESCE(m.total_marketing_cost, 0) AS marketing_cost,
+	  
+	  -- Prorated OPEX lines
+		SAFE_DIVIDE(
+			b.amount,
+			SUM(b.amount) OVER (PARTITION BY b.month, b.country)
+		) * COALESCE(o.dispensing_fees, 0) AS dispensing_fees,
+	  
+		SAFE_DIVIDE(
+			b.amount,
+			SUM(b.amount) OVER (PARTITION BY b.month, b.country)
+		) * COALESCE(o.operating_expense, 0) AS operating_expense,
+		SAFE_DIVIDE(
+			b.amount,
+			SUM(b.amount) OVER (PARTITION BY b.month, b.country)
+		) * COALESCE(o.staff_cost, 0) AS staff_cost
+	FROM base AS b
+	LEFT JOIN delivery AS d 
+		ON b.month = d.month
+	  	AND LOWER(b.country) = d.country
+	LEFT JOIN marketing AS m 
+		ON b.month = m.month
+		AND LOWER(b.country) = m.country
+		AND b.condition = m.condition
+	LEFT JOIN opex AS o 
+		ON b.month = o.month
+		AND LOWER(b.country) = o.country
+)
+
+-- now select final output
+SELECT
+	bpo.* EXCEPT(amount),
+	amount AS gross_revenue,
+	amount - refunds - tax_paid_usd AS net_revenue,
+	amount - refunds - cogs AS gross_profit,
+	amount - refunds - cogs - packaging - delivery_cost - gateway_fees AS cm2,
+	amount - refunds - cogs - packaging - delivery_cost - gateway_fees - marketing_cost AS cm3
+FROM base_with_opex AS bpo
