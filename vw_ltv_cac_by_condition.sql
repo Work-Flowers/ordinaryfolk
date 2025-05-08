@@ -32,7 +32,7 @@ gm_inputs AS (
 		country,
 		date,
 		condition,
-		amount - refunds - tax_paid_usd AS net_revenue,
+		gross_revenue - refunds - tax_paid_usd AS net_revenue,
 		cogs,
 		marketing_cost
 	FROM finance_metrics.monthly_contribution_margin
