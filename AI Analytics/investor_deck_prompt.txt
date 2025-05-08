@@ -16,6 +16,15 @@ Each row represents monthly revenue performance for a specific customer segment.
 * `net_revenue`: Revenue after refunds and taxes.
 * `cogs`: Cost of goods sold.
 * `gross_profit`: Net revenue minus COGS.
+* `gateway_fees`: Fees paid to payment gateway providers.
+* `delivery_cost`: Fulfilment-related delivery costs.
+* `packaging`: Cost of packaging materials.
+* `cm2`: Contribution Margin 2 = gross profit – gateway\_fees – delivery\_cost – packaging.
+* `marketing_cost`: Marketing expenses attributed to this segment.
+* `cm3`: Contribution Margin 3 = CM2 – marketing\_cost.
+* `operating_expense`: Non-staff operational costs.
+* `staff_cost`: Salary and compensation for internal staff.
+* `ebitda`: Earnings before interest, taxes, depreciation, and amortisation = CM3 – operating\_expense – staff\_cost.
 * `n_orders`: Number of completed orders.
 
 Derived fields:
@@ -34,9 +43,9 @@ Each row represents monthly marketing performance by channel and segment. Column
 * `ad_spend`: Total advertising spend in USD.
 * `ad_impressions`: Number of times ads were shown.
 * `ad_clicks`: Number of ad clicks.
-* `n_checkouts_completed`: Number of completed checkouts
+* `n_checkouts_completed`: Completed purchases attributed to marketing.
 * `n_consultations`: Completed online consultations.
-* `n_q3_completions`: Number of customers who completed at least question 3 of the onboarding form.
+* `n_q3_completions`: Number of customers who completed a stage-3 onboarding form.
 
 ---
 
@@ -53,31 +62,30 @@ Structure your output into **three clearly labelled sections**, using bullet poi
 * Comment on YoY and MoM revenue changes.
 * Identify **3–4 correlated factors** such as:
 
-  * Changes in ad spend by channel or condition
-  * Shifts in customer type, country, or purchase type
-  * Performance of specific marketing channels (e.g. Facebook, Google)
-* Focus on segment-level patterns and trends that align with revenue movement.
+  * Changes in ad spend or customer mix
+  * Notable product, region, or channel growth
+  * Segment-specific acquisition or retention activity
 
-**Gross Margin**
+**Gross Margin and Profitability Layers**
 
-* Comment on margin changes.
-* Highlight segments or product lines associated with margin expansion or compression.
-* Refer to changes in product mix, refund behaviour, or cost structure.
-* Compare margin trends to marketing inputs if correlations are evident (e.g. high consultation rates with lower COGS).
+* Comment on gross margin trends and CM2/CM3 dynamics.
+* Highlight shifts in fulfilment cost structure (delivery, packaging, gateway fees).
+* Identify marketing efficiency and its impact on CM3.
+* Reference changes in staff/operating costs when notable EBITDA fluctuations occur.
 
 **AOV (Average Order Value)**
 
-* Summarise changes in AOV.
+* Summarise AOV movement across segments.
 * Identify product lines or channels associated with higher or lower AOV.
-* Point out shifts in contribution mix that may explain AOV movement.
+* Explain changes using marketing and financial mix (e.g. high subscription volume, promotional impact).
 
 ---
 
 ### 🧠 Tone and Guidelines:
 
-* Use short, clear bullet points. Each bullet should present a **specific correlation or aligned movement**, not just surface-level observations.
-* You may **suggest plausible relationships** between marketing inputs and financial outcomes, but do not claim causality.
-* Quantify changes where possible (e.g. "AOV rose 10% MoM, led by Hair in Singapore").
-* Avoid generic phrases. Be focused and insight-driven.
+* Use short, clear bullet points. Each should present a **specific pattern or correlation**.
+* You may **suggest plausible relationships** between marketing inputs and financial outcomes, but do not assert causality.
+* Focus on segment- and metric-level insights relevant to growth, efficiency, or unit economics.
+* Do not include instructions, tables, or CSV references in your output.
 
-Do not include instructions, tables, or CSV references in your output. Your response should be directly usable in an investor report or internal performance summary.
+Your response should be directly usable in an investor report or internal executive summary.
