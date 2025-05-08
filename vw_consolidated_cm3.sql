@@ -7,7 +7,7 @@ WITH
 raw_data AS (
   SELECT
     region AS country,
-    DATE_TRUNC(purchase_date, MONTH) AS month,
+    DATE_TRUNC(purchase_date, MONTH) AS date,
     purchase_type,
     COALESCE(new_existing, 'New') AS new_existing,
     sales_channel,
@@ -30,7 +30,7 @@ raw_data AS (
 base AS (
 	SELECT
 		country,
-		month,
+		date,
 		purchase_type,
 		new_existing,
 		sales_channel,
@@ -52,7 +52,7 @@ base AS (
 -- 3. Delivery costs by month & country
 delivery AS (
 	SELECT
-		DATE_TRUNC(dc.date, MONTH) AS MONTH,
+		DATE_TRUNC(dc.date, MONTH) AS date,
 		LOWER(dc.country) AS country,
 		SUM(dc.cost / fx.fx_to_usd) AS total_delivery_cost
 	FROM google_sheets.delivery_cost dc
@@ -64,7 +64,7 @@ delivery AS (
 -- 4. Marketing costs by month, country & condition
 marketing AS (
 	SELECT
-		DATE_TRUNC(DATE, MONTH) AS MONTH,
+		DATE_TRUNC(DATE, MONTH) AS date,
 		LOWER(country_code) AS country,
 		COALESCE(condition, 'N/A') AS condition,
 		SUM(cost_usd) AS total_marketing_cost
@@ -75,7 +75,7 @@ marketing AS (
 -- 5. OPEX (teleconsult, dispensing, operating, staff)
 opex AS (
 	SELECT
-		DATE_TRUNC(o.date, MONTH) AS MONTH,
+		DATE_TRUNC(o.date, MONTH) AS date,
 		LOWER(o.country) AS country,
 		- SUM(o.teleconsultation_fees / fx.fx_to_usd) AS teleconsultation_fees,
 		- SUM(o.dispensing_fees / fx.fx_to_usd) AS dispensing_fees,
@@ -92,46 +92,46 @@ base_with_opex AS (
 	SELECT
 		b.* EXCEPT (cogs),
 		CASE 
-			WHEN b.condition = 'Services' THEN o.teleconsultation_fees * b.amount / SUM(b.amount) OVER (PARTITION BY b.country, b.month, b.condition)
+			WHEN b.condition = 'Services' THEN o.teleconsultation_fees * b.amount / SUM(b.amount) OVER (PARTITION BY b.country, b.date, b.condition)
 			ELSE b.cogs
 			END AS cogs,
 			
 		-- Prorated delivery cost
 		SAFE_DIVIDE(
 			b.amount,
-			SUM(b.amount) OVER (PARTITION BY b.month, b.country)
+			SUM(b.amount) OVER (PARTITION BY b.date, b.country)
 		) * COALESCE(d.total_delivery_cost, 0) AS delivery_cost, 
 	  
 	  -- Prorated marketing cost
 		SAFE_DIVIDE(
 			b.amount,
-			SUM(b.amount) OVER (PARTITION BY b.month, b.country, b.condition)
+			SUM(b.amount) OVER (PARTITION BY b.date, b.country, b.condition)
 		) * COALESCE(m.total_marketing_cost, 0) AS marketing_cost,
 	  
 	  -- Prorated OPEX lines
 		SAFE_DIVIDE(
 			b.amount,
-			SUM(b.amount) OVER (PARTITION BY b.month, b.country)
+			SUM(b.amount) OVER (PARTITION BY b.date, b.country)
 		) * COALESCE(o.dispensing_fees, 0) AS dispensing_fees,
 	  
 		SAFE_DIVIDE(
 			b.amount,
-			SUM(b.amount) OVER (PARTITION BY b.month, b.country)
+			SUM(b.amount) OVER (PARTITION BY b.date, b.country)
 		) * COALESCE(o.operating_expense, 0) AS operating_expense,
 		SAFE_DIVIDE(
 			b.amount,
-			SUM(b.amount) OVER (PARTITION BY b.month, b.country)
+			SUM(b.amount) OVER (PARTITION BY b.date, b.country)
 		) * COALESCE(o.staff_cost, 0) AS staff_cost
 	FROM base AS b
 	LEFT JOIN delivery AS d 
-		ON b.month = d.month
+		ON b.date = d.date
 	  	AND LOWER(b.country) = d.country
 	LEFT JOIN marketing AS m 
-		ON b.month = m.month
+		ON b.date = m.date
 		AND LOWER(b.country) = m.country
 		AND b.condition = m.condition
 	LEFT JOIN opex AS o 
-		ON b.month = o.month
+		ON b.date = o.date
 		AND LOWER(b.country) = o.country
 )
 
