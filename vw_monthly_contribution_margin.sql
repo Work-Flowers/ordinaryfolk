@@ -136,13 +136,14 @@ base_with_opex AS (
 )
 
 -- now select final output
+-- add coalesce statements for NULL
 SELECT
 	bpo.* EXCEPT(amount, packaging, delivery_cost, gateway_fees),
 	amount AS gross_revenue,
 	amount - refunds - tax_paid_usd AS net_revenue,
-	COALESCE(gateway_fees, 0) AS gateway_fees.
+	COALESCE(gateway_fees, 0) AS gateway_fees,
 	COALESCE(packaging, 0) AS packaging,
-	COALESCE(delivery_cost, 0) AS delivery_cost.
+	COALESCE(delivery_cost, 0) AS delivery_cost,
 	amount - refunds - cogs AS gross_profit,
 	amount - refunds - cogs - COALESCE(packaging, 0) - COALESCE(delivery_cost, 0) - COALESCE(gateway_fees, 0) AS cm2,
 	amount - refunds - cogs - COALESCE(packaging, 0) - COALESCE(delivery_cost, 0) - COALESCE(gateway_fees, 0) - marketing_cost AS cm3,
