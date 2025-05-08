@@ -1,10 +1,10 @@
 WITH marketing AS (
 	SELECT
-		date,
+		DATE_TRUNC(date, MONTH) AS date,
 		LOWER(country_code) AS country,
-		SUM(ROUND(cost_usd, 2)) AS spend,
-		SUM(impressions) AS impressions,
-		SUM(ROUND(clicks, 0)) AS clicks
+		ROUND(SUM(cost_usd), 0) AS spend,
+		ROUND(SUM(impressions), 0) AS impressions,
+		ROUND(SUM(clicks), 0) AS clicks
 	FROM cac.marketing_spend
 	GROUP BY 1,2
 ),
@@ -19,7 +19,7 @@ all_keys AS (
 	UNION DISTINCT
 	
 	SELECT DISTINCT
-		purchase_date AS date,
+		DATE_TRUNC(purchase_date, MONTH) AS date,
 		region AS country
 	FROM finance_metrics.contribution_margin
 )
@@ -29,7 +29,6 @@ SELECT
 	k.date,
 	k.country,
 	marketing.spend AS marketing_spend,
-	SUM(COALESCE(cm.line_item_amount_usd, cm.total_charge_amount_usd)) AS revenue,
 	COUNT(DISTINCT CASE WHEN cm.new_existing = 'New' THEN cm.customer_id END) AS n_new_customers
 FROM all_keys AS k
 LEFT JOIN finance_metrics.contribution_margin AS cm
