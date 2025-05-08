@@ -18,21 +18,22 @@ churn_info AS (
 	SELECT
 		region,
 		obs_date,
-		n_customers AS n_churned_customers,
+		SUM(n_customers) AS n_churned_customers,
 		SUM(lagged_mrr) AS churned_mrr		
 	FROM finance_metrics.customer_lifecyle_monthly
 	WHERE lifecyle = 'Churn'
-	GROUP BY 1,2,3
+	GROUP BY 1,2
 ),
 
 gm_inputs AS (
 	SELECT
 		country,
 		date,
-		amount - refunds - tax_paid_usd AS net_revenue,
-		cogs,
-		marketing_cost
+		SUM(net_revenue) AS net_revenue,
+		SUM(cogs) AS cogs,
+		SUM(marketing_cost) AS marketing_cost
 	FROM finance_metrics.monthly_contribution_margin
+	GROUP BY 1,2
 )
 
 SELECT	
