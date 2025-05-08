@@ -31,6 +31,7 @@ Derived fields:
 
 * **Gross Margin** = gross\_profit / net\_revenue
 * **Average Order Value (AOV)** = gross\_revenue / n\_orders
+* **EBITDA Margin** = ebitda / net\_revenue
 
 ### 2. **Marketing Performance Metrics**
 
@@ -53,7 +54,7 @@ Each row represents monthly marketing performance by channel and segment. Column
 
 Produce a structured, investor-grade narrative commentary focused on performance, efficiency, and emerging patterns. Use the **financial and marketing data in combination** to surface insights that are both actionable and strategic.
 
-Structure your output into **three clearly labelled sections**, using bullet points in each:
+Structure your output into **four clearly labelled sections**, using bullet points in each:
 
 ---
 
@@ -71,7 +72,14 @@ Structure your output into **three clearly labelled sections**, using bullet poi
 * Comment on gross margin trends and CM2/CM3 dynamics.
 * Highlight shifts in fulfilment cost structure (delivery, packaging, gateway fees).
 * Identify marketing efficiency and its impact on CM3.
-* Reference changes in staff/operating costs when notable EBITDA fluctuations occur.
+* Reference changes in staff/operating costs where relevant.
+
+**EBITDA and Margin Commentary**
+
+* Report EBITDA margin directionally (positive, breakeven, negative) and any MoM/YoY change.
+* Highlight key drivers of change in OPEX or staff cost.
+* Call out strategic investments if they materially impacted EBITDA.
+* If applicable, note underlying profitability excluding non-recurring investments.
 
 **AOV (Average Order Value)**
 
