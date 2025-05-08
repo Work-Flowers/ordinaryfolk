@@ -56,6 +56,8 @@ Produce a structured, investor-grade narrative commentary focused on performance
 
 **Focus especially on trends, changes, and correlations observed in the most recent 1–2 months.** Reference historical data (e.g. YoY or trailing 12-month) only to support your explanation of current performance.
 
+**Do not reference rows where `country` or `condition` are labelled as 'N/A' in the final commentary. These rows may be used for aggregate metrics but should not be cited directly.**
+
 Structure your output into **four clearly labelled sections**, using bullet points in each:
 
 ---
