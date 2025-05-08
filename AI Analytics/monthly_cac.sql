@@ -28,7 +28,7 @@ all_keys AS (
 SELECT 
 	k.date,
 	k.country,
-	marketing.spend AS marketing_spend,
+	COALESCE(marketing.spend, 0) AS marketing_spend,
 	COUNT(DISTINCT CASE WHEN cm.new_existing = 'New' THEN cm.customer_id END) AS n_new_customers
 FROM all_keys AS k
 LEFT JOIN finance_metrics.contribution_margin AS cm
