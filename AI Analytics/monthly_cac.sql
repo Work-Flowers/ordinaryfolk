@@ -37,5 +37,7 @@ LEFT JOIN finance_metrics.contribution_margin AS cm
 LEFT JOIN marketing		
 	ON k.date = marketing.date
 	AND k.country = marketing.country
-	
+WHERE 
+	k.date >= DATE_SUB(DATE_TRUNC(CURRENT_DATE, MONTH), INTERVAL 12 MONTH)
+	AND k.date < DATE_TRUNC(CURRENT_DATE, MONTH)
 GROUP BY 1,2,3
