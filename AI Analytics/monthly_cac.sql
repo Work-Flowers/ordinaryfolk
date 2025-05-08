@@ -40,7 +40,7 @@ FROM all_keys AS k
 LEFT JOIN finance_metrics.contribution_margin AS cm
 	ON k.date = cm.purchase_date
 	AND k.country = cm.region
-	AND k.condition = COALESCE(cm.condition, 'N/A'),
+	AND k.condition = COALESCE(cm.condition, 'N/A')
 LEFT JOIN marketing		
 	ON k.date = marketing.date
 	AND k.country = marketing.country
@@ -48,4 +48,4 @@ LEFT JOIN marketing
 WHERE 
 	k.date >= DATE_SUB(DATE_TRUNC(CURRENT_DATE, MONTH), INTERVAL 12 MONTH)
 	AND k.date < DATE_TRUNC(CURRENT_DATE, MONTH)
-GROUP BY 1,2,3
+GROUP BY 1,2,3,4
