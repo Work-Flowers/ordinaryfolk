@@ -143,6 +143,5 @@ SELECT
 	amount - refunds - cogs AS gross_profit,
 	amount - refunds - cogs - packaging - delivery_cost - gateway_fees AS cm2,
 	amount - refunds - cogs - packaging - delivery_cost - gateway_fees - marketing_cost AS cm3,
-	amount - refunds - cogs - packaging - delivery_cost - gateway_fees - marketing_cost  - operating_expense - staff_cost AS ebitda
-
+	amount - refunds - cogs - packaging - delivery_cost - gateway_fees - marketing_cost - operating_expense - staff_cost AS ebitda
 FROM base_with_opex AS bpo
