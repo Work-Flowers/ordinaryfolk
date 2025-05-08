@@ -6,10 +6,10 @@ WITH base AS (
     sales_channel,
     region AS country,
     DATE_TRUNC(purchase_date, MONTH) AS purchase_month,
-    new_existing,
+    COALESCE(new_existing, 'New') AS new_existing,
     billing_reason,
     purchase_type,
-    condition,
+    COALESCE(condition, 'N/A') AS condition,
     currency,
     customer_id,
     charge_id,
@@ -22,7 +22,6 @@ WITH base AS (
     amount_refunded_usd,
     MIN(DATE_TRUNC(purchase_date, MONTH)) OVER(PARTITION BY customer_id) AS acq_month
   FROM finance_metrics.contribution_margin
---   WHERE customer_id IS NOT NULL
 ),
 
 cm1 AS (

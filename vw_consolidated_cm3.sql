@@ -1,5 +1,5 @@
-DROP VIEW IF EXISTS finance_metrics.monthly_contribution_margin;
-CREATE VIEW finance_metrics.monthly_contribution_margin AS 
+DROP VIEW IF EXISTS finance_metrics.consolidated_cm3;
+CREATE VIEW finance_metrics.consolidated_cm3 AS 
 
 WITH
 
@@ -142,7 +142,5 @@ SELECT
 	amount - refunds - tax_paid_usd AS net_revenue,
 	amount - refunds - cogs AS gross_profit,
 	amount - refunds - cogs - packaging - delivery_cost - gateway_fees AS cm2,
-	amount - refunds - cogs - packaging - delivery_cost - gateway_fees - marketing_cost AS cm3,
-	amount - refunds - cogs - packaging - delivery_cost - gateway_fees - marketing_cost  - operating_expense - staff_cost AS ebitda
-
+	amount - refunds - cogs - packaging - delivery_cost - gateway_fees - marketing_cost AS cm3
 FROM base_with_opex AS bpo
