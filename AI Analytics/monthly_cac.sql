@@ -6,6 +6,7 @@ WITH marketing AS (
 		ROUND(SUM(impressions), 0) AS impressions,
 		ROUND(SUM(clicks), 0) AS clicks
 	FROM cac.marketing_spend
+	WHERE country_code IS NOT NULL
 	GROUP BY 1,2
 ),
 
@@ -22,6 +23,7 @@ all_keys AS (
 		DATE_TRUNC(purchase_date, MONTH) AS date,
 		region AS country
 	FROM finance_metrics.contribution_margin
+	WHERE region IS NOT NULL
 )
 
 
