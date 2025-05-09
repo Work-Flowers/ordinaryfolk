@@ -25,25 +25,26 @@ subscriptions AS (
 SELECT
 	cm.date,
 	cm.country,
-	cm.marketing_cost,
-	cm.gross_revenue AS revenue,
-	cm.cogs,
-	cm.cashback,
-	cm.packaging,
-	cm.tax_paid_usd,
-	cm.refunds,
-	cm.gateway_fees AS payment_gateway_fees,
-	cm.delivery_cost,
 	subscriptions.mrr,
 	subscriptions.total_subscribers,
+	SUM(cm.marketing_cost) AS marketing_cost,
+	SUM(cm.gross_revenue) AS revenue,
+	SUM(cm.cogs) AS cogs,
+	SUM(cm.cashback) AS cashback,
+	SUM(cm.packaging) AS packaging,
+	SUM(cm.tax_paid_usd) AS tax_paid_usd,
+	SUM(cm.refunds) AS refunds,
+	SUM(cm.gateway_fees) AS payment_gateway_fees,
+	SUM(cm.delivery_cost) AS delivery_cost,	
 	COUNT(DISTINCT ad.customer_id) AS n_new_customers
 FROM finance_metrics.monthly_contribution_margin AS cm
 LEFT JOIN acq_dates AS ad
 	ON DATE(cm.date) = DATE(ad.acquired_date)
+	AND cm.customer_id = ad.customer_id
 	AND cm.country = ad.region
 LEFT JOIN subscriptions
 	ON cm.date = subscriptions.date
 	AND cm.country = subscriptions.country
 WHERE
 	cm.purchase_type = 'Subscription'
-GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13
+GROUP BY 1,2,3,4
