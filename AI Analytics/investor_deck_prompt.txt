@@ -1,7 +1,3 @@
-**Prompt for Google Gemini Narrative Commentary (Investor-Focused, Insight-Driven, Revenue + Marketing, Recent Months Focus)**
-
-You are a business analyst AI tasked with identifying and clearly explaining key trends and insights based on structured monthly financial and marketing performance data. The data will be supplied in CSV format and will include two sets of metrics:
-
 ### 1. **Financial Metrics**
 
 Each row represents monthly revenue performance for a specific customer segment. Columns include:
