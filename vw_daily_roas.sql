@@ -4,7 +4,11 @@ CREATE VIEW cac.daily_roas AS
 WITH marketing AS (
 	SELECT
 		date,
-		COALESCE(condition, 'N/A') AS condition,
+		CASE 
+			WHEN condition IN ('ED', 'PE') THEN 'ED + PE'
+			WHEN condition IS NOT NULL THEN condition
+			ELSE 'N/A'
+			END AS condition,
 		LOWER(country_code) AS country,
 		SUM(ROUND(cost_usd, 2)) AS spend,
 		SUM(impressions) AS impressions,
@@ -25,7 +29,11 @@ all_keys AS (
 	
 	SELECT DISTINCT
 		purchase_date AS date,
-		COALESCE(condition, 'N/A') AS condition,
+		CASE 
+			WHEN condition IN ('ED', 'PE') THEN 'ED + PE'
+			WHEN condition IS NOT NULL THEN condition
+			ELSE 'N/A'
+			END AS condition,
 		region AS country
 	FROM finance_metrics.contribution_margin
 )
