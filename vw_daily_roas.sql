@@ -52,7 +52,13 @@ SELECT
 FROM all_keys AS k
 LEFT JOIN finance_metrics.contribution_margin AS cm
 	ON k.date = cm.purchase_date
-	AND k.condition = COALESCE(cm.condition, 'N/A')
+	AND k.condition = (
+		CASE 
+			WHEN cm.condition IN ('ED', 'PE') THEN 'ED + PE'
+			WHEN cm.condition IS NOT NULL THEN cm.condition
+			ELSE 'N/A'
+			END
+		)
 	AND k.country = cm.region
 LEFT JOIN marketing		
 	ON k.date = marketing.date
