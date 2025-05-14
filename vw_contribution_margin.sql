@@ -21,6 +21,13 @@ tel AS (
 		AND LOWER(pr.name) LIKE '%tele%'
 ),
 
+patient_brand_stripe_ids AS (
+	SELECT DISTINCT
+		stripe_customer_id,
+		from_platform_env AS brand
+	FROM all_postgres.patient
+),
+
 stripe_data AS (
 	SELECT
 		'Stripe' AS sales_channel,
@@ -31,6 +38,7 @@ stripe_data AS (
 			ELSE 'Subscription'
 			END AS purchase_type,
 		COALESCE(inv.billing_reason, 'manual') AS billing_reason,
+		pbsi.brand,
 		ch.customer_id,
 		cust.email,
 		ch.id AS charge_id,
@@ -67,6 +75,8 @@ stripe_data AS (
 		ON ch.payment_intent_id = pi.id
 	LEFT JOIN all_stripe.customer AS cust
 		ON ch.customer_id = cust.id
+	LEFT JOIN patient_brand_stripe_ids AS pbsi
+		ON ch.customer_id = pbsi.stripe_customer_id
 	INNER JOIN all_stripe.balance_transaction AS bt
 		ON ch.balance_transaction_id = bt.id
 	INNER JOIN ref.fx_rates AS fx
@@ -101,6 +111,7 @@ tiktok_data AS(
 		CAST(NULL AS STRING) AS type,
 		'One-Time' AS purchase_type,
 		'manual' AS billing_reason,
+		'N/A' AS brand,
 		tik.buyer_username AS customer_id,
 		CAST(NULL AS STRING) AS email,
 		CAST(tik.order_id AS STRING) AS charge_id,
@@ -172,6 +183,7 @@ shopee_data AS (
 		CAST(NULL AS STRING) AS type,
 		COALESCE(cttp.purchase_type, 'One-Time') AS purchase_type,
 		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
+		'N/A' AS brand,
 		so.username_buyer_ AS customer_id,
 		CAST(NULL AS STRING) AS email,
 		CAST(NULL AS STRING) AS charge_id,
@@ -218,6 +230,7 @@ sg_cod_data AS (
 		CAST(NULL AS STRING) AS type,
 		COALESCE(cttp.purchase_type, 'One-Time') AS purchase_type,
 		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
+		'N/A' AS brand,
 		o.email AS customer_id,
 		o.email,
 		CAST(NULL AS STRING) AS charge_id,
@@ -264,6 +277,7 @@ hk_cod_data AS (
 		CAST(NULL AS STRING) AS type,
 		COALESCE(cttp.purchase_type, 'One-Time') AS purchase_type,
 		COALESCE(cttp.billing_reason, 'manual') AS billing_reason,
+		'N/A' AS brand,
 		o.email AS customer_id,
 		o.email,
 		CAST(NULL AS STRING) AS charge_id,
@@ -322,6 +336,7 @@ atome_final AS (
 			ELSE 'One-Time' 
 			END AS purchase_type,
 		'manual' AS billing_reason,
+		p.from_platform_env AS brand,
 		o.patient_id AS customer_id,
 		p.email,
 		am.atome_order_id AS charge_id,
@@ -364,7 +379,7 @@ atome_final AS (
 	LEFT JOIN ref.tax_rate_history AS t
 		ON 'sg' = t.region
 		AND am.transaction_time  BETWEEN t.from_date AND t.to_date
-	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,16,17,18,19,21,23,24,25,27
+	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,17,18,19,20,22,24,25,26,28
 	HAVING SUM(GREATEST(am.transaction_amount, 0)) > 0
 ),
 
@@ -395,6 +410,7 @@ unioned_data AS (
 		CAST(NULL AS STRING) AS type,
 		'One-Time' AS purchase_type,
 		'manual' AS billing_reason,
+		'N/A' AS brand,
 		CAST(NULL AS STRING) AS customer_id,
 		CAST(NULL AS STRING) AS email,
 		CAST(NULL AS STRING) AS charge_id,

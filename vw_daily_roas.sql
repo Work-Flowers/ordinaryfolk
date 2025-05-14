@@ -9,12 +9,13 @@ WITH marketing AS (
 			WHEN condition IS NOT NULL THEN condition
 			ELSE 'N/A'
 			END AS condition,
+		brand,
 		LOWER(country_code) AS country,
 		SUM(ROUND(cost_usd, 2)) AS spend,
 		SUM(impressions) AS impressions,
 		SUM(ROUND(clicks, 0)) AS clicks
 	FROM cac.marketing_spend
-	GROUP BY 1,2,3
+	GROUP BY 1,2,3,4
 ),
 
 all_keys AS (
@@ -22,7 +23,8 @@ all_keys AS (
 	SELECT DISTINCT 
 		date,
 		condition,
-		country
+		country,
+		brand
 	FROM marketing
 	
 	UNION DISTINCT
@@ -34,7 +36,8 @@ all_keys AS (
 			WHEN condition IS NOT NULL THEN condition
 			ELSE 'N/A'
 			END AS condition,
-		region AS country
+		region AS country,
+		brand
 	FROM finance_metrics.contribution_margin
 )
 
@@ -43,6 +46,7 @@ SELECT
 	k.date,
 	k.country,
 	k.condition,
+	k.brand,
 	marketing.spend AS marketing_spend,
 	marketing.impressions,
 	marketing.clicks,
@@ -52,6 +56,7 @@ SELECT
 FROM all_keys AS k
 LEFT JOIN finance_metrics.contribution_margin AS cm
 	ON k.date = cm.purchase_date
+	AND k.brand = cm.brand
 	AND k.condition = (
 		CASE 
 			WHEN cm.condition IN ('ED', 'PE') THEN 'ED + PE'
@@ -64,5 +69,6 @@ LEFT JOIN marketing
 	ON k.date = marketing.date
 	AND k.condition = marketing.condition
 	AND k.country = marketing.country
+	AND k.brand = marketing.brand
 	
-GROUP BY 1,2,3,4,5,6
+GROUP BY 1,2,3,4,5,6,7
