@@ -425,7 +425,7 @@ unioned_data AS (
 		product_name,
 		CAST(NULL AS STRING) AS price_id,
 		CAST(NULL AS STRING) AS condition,
-		0 AS quantity,
+		1 AS quantity,
 		currency,
 		line_item_amount_usd,
 		cogs,
