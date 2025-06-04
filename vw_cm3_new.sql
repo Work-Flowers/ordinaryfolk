@@ -48,7 +48,7 @@ cm1 AS (
   		SUM(cogs) AS cogs,
   		SUM(packaging) AS packaging,
   		SUM(cashback) AS cashback,
-  		SUM((amount - amount_refunded_usd) * (1 - 1 / (1+ gst_vat))) AS gst_vat,
+  		SUM((amount - amount_refunded_usd) * (1 - 1 / (1+ gst_vat))) AS tax_paid_usd,
   		SUM(amount * fee_rate) AS payment_gateway_fees,
   		SUM(amount_refunded_usd) AS refunds
 	FROM base
