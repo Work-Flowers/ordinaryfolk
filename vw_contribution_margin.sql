@@ -45,6 +45,8 @@ stripe_data AS (
 		JSON_VALUE(ch.metadata, '$.orderId') AS order_sys_id,
 		ch.payment_intent_id,
 		inv.subscription_id,
+		px.recurring_interval,
+		px.recurring_interval_count,
 		DATE(ch.created) AS purchase_date,
 		ch.amount / fx.fx_to_usd / COALESCE(sub.subunits, 100) AS total_charge_amount_usd,
 		COALESCE(ch.amount_refunded / ch.amount, 0) AS refund_rate,
@@ -118,6 +120,8 @@ tiktok_data AS(
 		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
+		CAST(NULL AS STRING) AS recurring_interval,
+		NULL AS recurring_interval_count,
 		tik.created_time AS purchase_date,
 		0 AS total_charge_amount_usd,
 		SAFE_DIVIDE(COALESCE(tik.order_refund_amount, 0), COALESCE(tik.sku_subtotal_after_discount, 1)) AS refund_rate,
@@ -190,6 +194,8 @@ shopee_data AS (
 		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
+		CAST(NULL AS STRING) AS recurring_interval,
+		NULL AS recurring_interval_count,
 		DATE(so.payout_completed_date) AS purchase_date,
 		0 AS total_charge_amount_usd,
 		so.refund_amount / GREATEST(so.product_price, 1) AS refund_rate,
@@ -237,6 +243,8 @@ sg_cod_data AS (
 		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
+		CAST(NULL AS STRING) AS recurring_interval,
+		NULL AS recurring_interval_count,
 		o.date AS purchase_date,
 		o.purchase_amount / fx.fx_to_usd AS total_charge_amount_usd,
 		0 AS refund_rate,
@@ -284,6 +292,8 @@ hk_cod_data AS (
 		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
+		CAST(NULL AS STRING) AS recurring_interval,
+		NULL AS recurring_interval_count,
 		o.date AS purchase_date,
 		o.purchase_amount / fx.fx_to_usd AS total_charge_amount_usd,
 		0 AS refund_rate,
@@ -343,6 +353,8 @@ atome_final AS (
 		o.sys_id AS order_sys_id,
 		o.stripe_payment_intent_id AS payment_intent_id,
 		o.stripe_subscription_id AS subscription_id,
+		CAST(NULL AS STRING) AS recurring_interval,
+		NULL AS recurring_interval_count,
 		aod.order_date AS purchase_date,
 		SUM(GREATEST(am.transaction_amount, 0) / fx.fx_to_usd) AS total_charge_amount_usd,
 		SUM(ABS(LEAST(am.transaction_amount, 0))) / SUM(GREATEST(am.transaction_amount, 0)) AS refund_rate,
@@ -379,7 +391,7 @@ atome_final AS (
 	LEFT JOIN ref.tax_rate_history AS t
 		ON 'sg' = t.region
 		AND am.transaction_time  BETWEEN t.from_date AND t.to_date
-	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,17,18,19,20,22,24,25,26,28
+	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,19,20,21,22,24,26,27,28,30
 	HAVING SUM(GREATEST(am.transaction_amount, 0)) > 0
 ),
 
@@ -417,6 +429,8 @@ unioned_data AS (
 		CAST(NULL AS STRING) AS order_sys_id,
 		CAST(NULL AS STRING) AS payment_intent_id,
 		CAST(NULL AS STRING) AS subscription_id,
+		CAST(NULL AS STRING) AS recurring_interval,
+		NULL AS recurring_interval_count,
 		purchase_date,
 		0 AS total_charge_amount_usd,
 		refunds / line_item_amount_usd AS refund_rate,

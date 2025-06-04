@@ -2,51 +2,57 @@ DROP VIEW IF EXISTS finance_metrics.cm3;
 CREATE VIEW finance_metrics.cm3 AS 
 
 WITH base AS (
+  
   SELECT
-    sales_channel,
-    region AS country,
-    DATE_TRUNC(purchase_date, MONTH) AS purchase_month,
-    COALESCE(new_existing, 'New') AS new_existing,
-    billing_reason,
-    purchase_type,
-    COALESCE(condition, 'N/A') AS condition,
-    currency,
-    customer_id,
-    charge_id,
-    COALESCE(line_item_amount_usd, total_charge_amount_usd) AS amount,
-    cogs,
-    packaging,
-    cashback,
-    gst_vat,
-    fee_rate,
-    amount_refunded_usd,
-    MIN(DATE_TRUNC(purchase_date, MONTH)) OVER(PARTITION BY customer_id) AS acq_month
+		sales_channel,
+    	region AS country,
+	    DATE_TRUNC(purchase_date, MONTH) AS purchase_month,
+	    COALESCE(new_existing, 'New') AS new_existing,
+	    billing_reason,
+	    purchase_type,
+	    COALESCE(condition, 'N/A') AS condition,
+	    currency,
+	    customer_id,
+	    charge_id,
+	    subscription_id,
+	    recurring_interval,
+	    recurring_interval_count,
+	    COALESCE(line_item_amount_usd, total_charge_amount_usd) AS amount,
+	    cogs,
+	    packaging,
+	    cashback,
+	    gst_vat,
+	    fee_rate,
+	    amount_refunded_usd,
+	    MIN(DATE_TRUNC(purchase_date, MONTH)) OVER(PARTITION BY customer_id) AS acq_month
   FROM finance_metrics.contribution_margin
 ),
 
 cm1 AS (
 	SELECT
-	  sales_channel,
-	  country,
-	  purchase_month,
-	  purchase_type,
-	  acq_month,
-	  new_existing,
-	  billing_reason,
-	  condition,
-	  currency,
-	  customer_id,
-	  charge_id,
-	  gst_vat AS gst_vat_rate,
-	  SUM(amount) AS revenue,
-	  SUM(cogs) AS cogs,
-	  SUM(packaging) AS packaging,
-	  SUM(cashback) AS cashback,
-	  SUM((amount - amount_refunded_usd) * (1 - 1 / (1+ gst_vat))) AS gst_vat,
-	  SUM(amount * fee_rate) AS payment_gateway_fees,
-	  SUM(amount_refunded_usd) AS refunds
+		sales_channel,
+		country,
+  		purchase_month,
+  		purchase_type,
+		acq_month,
+		new_existing,
+		billing_reason,
+		condition,
+  		currency,
+  		customer_id,
+  		charge_id,
+      	recurring_interval,
+      	recurring_interval_count,
+  		gst_vat AS gst_vat_rate,
+  		SUM(amount) AS revenue,
+  		SUM(cogs) AS cogs,
+  		SUM(packaging) AS packaging,
+  		SUM(cashback) AS cashback,
+  		SUM((amount - amount_refunded_usd) * (1 - 1 / (1+ gst_vat))) AS gst_vat,
+  		SUM(amount * fee_rate) AS payment_gateway_fees,
+  		SUM(amount_refunded_usd) AS refunds
 	FROM base
-	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12
+	GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14
 ),
 
 delivery AS (
