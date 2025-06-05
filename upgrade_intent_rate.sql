@@ -11,14 +11,13 @@ WITH landing AS (
 
 upgrades AS (
 	SELECT
-		DATE(t.timestamp) AS date,
-		u.region,
-		COUNT(DISTINCT t.user_id) AS n_users
-	FROM segment.upgraded_plans AS u
-	INNER JOIN segment.tracks AS t
-		ON u.message_id = t.message_id
+		DATE(p.timestamp) AS date,
+		p.region,
+		COUNT(DISTINCT p.user_id) AS n_users
+	FROM segment.pages AS p
+	WHERE 
+		p.name = 'Select Upgrade Plans Page'
 	GROUP BY 1,2
-	ORDER BY 1 DESC
 ),
 
 new_customers AS (
