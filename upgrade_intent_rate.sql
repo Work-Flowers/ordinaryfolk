@@ -5,7 +5,7 @@ WITH landing AS (
 		COUNT(DISTINCT p.user_id) AS n_users	
 	FROM segment.pages AS p
 	WHERE 
-		name = 'Upgrade Introduction Page'
+		(name = 'Upgrade Introduction Page' OR category = 'Upgrade Introduction Page')
 	GROUP BY 1,2
 ),
 
