@@ -25,6 +25,5 @@ CREATE VIEW all_postgres.all_appointments AS (
 	LEFT JOIN google_sheets.postgres_stripe_condition_map AS cmap
 		ON ca.evaluation_id = cmap.postgres_condition
 	LEFT JOIN cac.utm_source_map AS utm
-		ON JSON_VALUE(o.utm, '$.utmSource') = utm.context_campaign_source;
+		ON JSON_VALUE(o.utm, '$.utmSource') = utm.context_campaign_source
 );
-
