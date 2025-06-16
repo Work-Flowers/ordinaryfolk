@@ -1,29 +1,25 @@
 # setup -------------------------------------------------------------------
 
 library(bigrquery)
-library(dplyr)
+library(tidyverse)
 library(googlesheets4)
 library(ellmer)
 library(jsonlite)
 library(lubridate)
 library(purrr)
 library(httr)
-library(glue)
+library(rlang)
 
 
 # === CONFIGURATION ===
 
 bq_auth("dennis@work.flowers")
 project_id <- "noah-e30be"
-dataset <- "your_dataset_name"
-table <- "your_ad_history_table"
 sheet_url <- "https://docs.google.com/spreadsheets/d/your-sheet-id"
-facebook_token <- "EAAG...YOUR_FACEBOOK_ACCESS_TOKEN..." # From your client
-Sys.setenv(OPENAI_API_KEY = "sk-...")  # or load from .Renviron
 
 # === STEP 1: Pull recent ad_ids and creative_ids from BigQuery ===
 
-three_months_ago <- Sys.Date() %m-% months(3)
+three_months_ago <- Sys.Date() %m-% months(1)
 
 query <- glue("
   SELECT DISTINCT
@@ -37,29 +33,67 @@ ad_data <- bq_project_query(project_id, query) %>%
 
 # === STEP 2: For each creative_id, fetch a fresh image_url from the FB API ===
 
-get_image_url <- function(creative_id, facebook_token) {
-  api_url <- paste0("https://graph.facebook.com/v19.0/", creative_id)
+is_image_url <- function(url) {
+  is.character(url) && length(url) == 1 &&
+    grepl("^https?://.*\\.(jpg|jpeg|png|gif|webp|bmp|svg)$", url, ignore.case = TRUE)
+}
+
+find_image_in_list <- function(x) {
+  # If x is a vector of URLs, loop over each
+  if (is.character(x) && length(x) > 1) {
+    for (i in x) {
+      if (is_image_url(i)) return(i)
+    }
+  } else if (is_image_url(x)) {
+    return(x)
+  } else if (is.list(x) || is.data.frame(x)) {
+    for (item in x) {
+      result <- find_image_in_list(item)
+      if (!is.null(result)) return(result)
+    }
+  }
+  return(NULL)
+}
+
+get_image_url_only <- function(creative_id) {
+  api_url <- glue::glue("https://graph.facebook.com/v19.0/{creative_id}")
   res <- tryCatch({
     httr::GET(
       url = api_url,
-      query = list(fields = "image_url", access_token = facebook_token)
+      query = list(
+        fields = "id,image_url,object_story_spec,asset_feed_spec", 
+        access_token = keyring::key_get("meta", "of")
+      )
     )
   }, error = function(e) NULL)
   
   if (is.null(res) || res$status_code != 200) return(NA_character_)
-  content <- httr::content(res, as = "parsed", type = "application/json")
-  image_url <- content$image_url %||% NA_character_
-  image_url
+  content <- httr::content(res, as = "parsed", simplifyVector = TRUE)
+  
+  # 1. Direct image_url
+  if (is_image_url(content$image_url)) return(content$image_url)
+  
+  # 2. Try object_story_spec (e.g., for carousels)
+  img_from_object_story <- find_image_in_list(content$object_story_spec)
+  if (!is.null(img_from_object_story)) return(img_from_object_story)
+  
+  # 3. Try asset_feed_spec (dynamic ads)
+  img_from_asset_feed <- find_image_in_list(content$asset_feed_spec)
+  if (!is.null(img_from_asset_feed)) return(img_from_asset_feed)
+  
+  # If nothing found
+  return(NA_character_)
 }
 
 # Map to get image URLs for all ads (adds image_url column)
 ad_data <- ad_data %>%
-  mutate(image_url = map_chr(creative_id, ~get_image_url(.x, facebook_token)))
+  mutate(image_url = map_chr(creative_id, get_image_url_only)) %>%
+  filter(!is.na(image_url) & image_url != "")
 
 # === STEP 3: Classify ad images using ellmer + GPT-4 Vision ===
 
-classify_ad <- function(ad_id, image_url) {
-  message(glue::glue("Classifying ad {ad_id}..."))
+classify_ad <- function(ad_id, image_url) {  
+  message(stringr::str_glue("Classifying ad {ad_id}..."))
   
   if (is.na(image_url) || image_url == "") {
     return(tibble(
