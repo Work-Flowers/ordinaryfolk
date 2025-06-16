@@ -129,7 +129,7 @@ tiktok_data AS(
 		CAST(tik.sku_id AS STRING) AS product_id,
 		tok.product_name,
 		CAST(NULL AS STRING) AS price_id,
-		CAST(NULL AS STRING) AS condition,
+		tok.condition,
 		tik.quantity,
 		LOWER(tik.currency) AS currency,
 		tik.sku_subtotal_after_discount / fx.fx_to_usd AS line_item_amount_usd,
@@ -157,6 +157,7 @@ lazada_data AS (
 		lc.product_name,
 		o.seller_sku,
 		lc.cogs / fx.fx_to_usd AS cogs,
+		lc.condition,
 		lc.packaging / fx.fx_to_usd AS packaging,
 		LOWER(o.currency) AS currency,
 		SUM(CASE WHEN o.transaction_type = 'Orders-Sales' THEN o.amount / fx.fx_to_usd ELSE 0 END) AS line_item_amount_usd,
@@ -177,7 +178,7 @@ lazada_data AS (
 	LEFT JOIN finance_metrics.lazada_product_costs AS lc
 		ON o.seller_sku = lc.seller_sku
 		AND o.transaction_date BETWEEN lc.from_date AND lc.to_date
-	GROUP BY 1,2,3,4,5,6
+	GROUP BY 1,2,3,4,5,6,7
 ),
 
 shopee_data AS (
@@ -438,7 +439,7 @@ unioned_data AS (
 		seller_sku AS product_id,
 		product_name,
 		CAST(NULL AS STRING) AS price_id,
-		CAST(NULL AS STRING) AS condition,
+		condition,
 		1 AS quantity,
 		currency,
 		line_item_amount_usd,
