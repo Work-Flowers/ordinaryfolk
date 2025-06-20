@@ -42,7 +42,7 @@ base AS (
 		customer_id,
 		currency,
 		SUM(amount) AS amount,
-		SUM(COALESCE(cogs * (1 - amount_refunded_usd / amount), 0)) AS cogs,
+		SUM(COALESCE(cogs, 0) * (1 - SAFE_DIVIDE(amount_refunded_usd, amount))) AS cogs,
 		SUM(packaging) AS packaging,
 		SUM(cashback) AS cashback,
 		SUM((amount - amount_refunded_usd) * (1 - 1 / (1 + gst_vat))) AS tax_paid_usd,
