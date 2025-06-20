@@ -3,7 +3,7 @@ CREATE VIEW finance_metrics.monthly_contribution_margin AS
 
 WITH
 
--- 1. RAW: compute all scalar fields + acq_month per customer
+-- 1. RAW: compute all scalar fields + acq_month per customer, and adjust cogs for refunds
 raw_data AS (
   SELECT
     region AS country,
@@ -28,7 +28,7 @@ raw_data AS (
   FROM finance_metrics.contribution_margin
 ),
 
--- 2. BASE: aggregate all the sums and counts, now that acq_month is just a column
+-- 2. BASE: aggregate all the sums and counts, now that acq_month is just a column. 
 base AS (
 	SELECT
 		country,
@@ -42,7 +42,7 @@ base AS (
 		customer_id,
 		currency,
 		SUM(amount) AS amount,
-		SUM(COALESCE(cogs,0)) AS cogs,
+		SUM(COALESCE(cogs * (1 - amount_refunded_usd / amount), 0)) AS cogs,
 		SUM(packaging) AS packaging,
 		SUM(cashback) AS cashback,
 		SUM((amount - amount_refunded_usd) * (1 - 1 / (1 + gst_vat))) AS tax_paid_usd,
