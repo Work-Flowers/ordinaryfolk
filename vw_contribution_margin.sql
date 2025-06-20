@@ -54,7 +54,7 @@ stripe_data AS (
 		COALESCE(prod.id, tel.product_id) AS product_id,
 		COALESCE(prod.name, tel.product_name) AS product_name,
 		COALESCE(px.id, tel.price_id) AS price_id,
-		COALESCE(JSON_EXTRACT_SCALAR(prod.metadata, '$.condition'), tel.condition) AS condition,
+		COALESCE(tel.condition, JSON_EXTRACT_SCALAR(prod.metadata, '$.condition')) AS condition,
 		COALESCE(ii.quantity, 1) AS quantity,
 		ch.currency,
 		ch.amount / (
