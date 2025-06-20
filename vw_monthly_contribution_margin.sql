@@ -9,11 +9,13 @@ raw_data AS (
     region AS country,
     DATE_TRUNC(purchase_date, MONTH) AS date,
     purchase_type,
+    billing_reason,
     COALESCE(new_existing, 'New') AS new_existing,
     sales_channel,
     COALESCE(condition, 'N/A') AS condition,
     customer_id,
     charge_id,
+    currency,
     COALESCE(line_item_amount_usd, total_charge_amount_usd) AS amount,
     cogs * quantity AS cogs,
     packaging,
@@ -32,11 +34,13 @@ base AS (
 		country,
 		date,
 		purchase_type,
+		billing_reason,
 		new_existing,
 		sales_channel,
 		condition,
 		acq_month,
 		customer_id,
+		currency,
 		SUM(amount) AS amount,
 		SUM(COALESCE(cogs,0)) AS cogs,
 		SUM(packaging) AS packaging,
@@ -46,7 +50,7 @@ base AS (
 		SUM(amount_refunded_usd) AS refunds,
 		COUNT(DISTINCT charge_id) AS n_orders
 	FROM raw_data
-	GROUP BY 1,2,3,4,5,6,7,8
+	GROUP BY 1,2,3,4,5,6,7,8,9,10
 ),
 
 -- 3. Delivery costs by month & country
