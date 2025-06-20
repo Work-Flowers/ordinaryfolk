@@ -148,9 +148,9 @@ SELECT
 	COALESCE(gateway_fees, 0) AS gateway_fees,
 	COALESCE(packaging, 0) AS packaging,
 	COALESCE(delivery_cost, 0) AS delivery_cost,
-	amount - refunds - tax_paid_usd - cogs AS gross_profit,
-	amount - refunds - tax_paid_usd - cogs - COALESCE(packaging, 0) - COALESCE(delivery_cost, 0) - COALESCE(gateway_fees, 0) AS cm2,
-	amount - refunds - tax_paid_usd - cogs - COALESCE(packaging, 0) - COALESCE(delivery_cost, 0) - COALESCE(gateway_fees, 0) - marketing_cost AS cm3,
-	amount - refunds - tax_paid_usd - cogs - COALESCE(packaging, 0) - COALESCE(delivery_cost, 0) - COALESCE(gateway_fees, 0) - marketing_cost  - operating_expense - staff_cost AS ebitda
+	amount - refunds - tax_paid_usd - cogs - COALESCE(dispensing_fees, 0) AS gross_profit,
+	amount - refunds - tax_paid_usd - cogs - COALESCE(dispensing_fees, 0) - COALESCE(packaging, 0) - COALESCE(delivery_cost, 0) - COALESCE(gateway_fees, 0) AS cm2,
+	amount - refunds - tax_paid_usd - cogs - COALESCE(dispensing_fees, 0) - COALESCE(packaging, 0) - COALESCE(delivery_cost, 0) - COALESCE(gateway_fees, 0) - marketing_cost AS cm3,
+	amount - refunds - tax_paid_usd - cogs - COALESCE(dispensing_fees, 0) - COALESCE(packaging, 0) - COALESCE(delivery_cost, 0) - COALESCE(gateway_fees, 0) - marketing_cost  - operating_expense - staff_cost AS ebitda
 
 FROM base_with_opex AS bpo
