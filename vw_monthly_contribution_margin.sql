@@ -54,10 +54,7 @@ WITH
 			COALESCE(condition, 'N/A') AS condition,
 			SUM(cost_usd) AS marketing_cost
 		FROM cac.marketing_spend
-		GROUP BY
-			1,
-			2,
-			3
+		GROUP BY 1,2,3
 	),
 	delivery_agg AS (
 		SELECT
@@ -65,13 +62,10 @@ WITH
 			COALESCE(LOWER(dc.country), 'N/A') AS country,
 			'N/A' AS condition,
 			SUM(dc.cost / fx.fx_to_usd) AS delivery_cost
-		FROM
-			google_sheets.delivery_cost dc
-			JOIN ref.fx_rates AS fx ON LOWER(dc.currency) = fx.currency
-		GROUP BY
-			1,
-			2,
-			3
+		FROM google_sheets.delivery_cost dc
+		JOIN ref.fx_rates AS fx 
+			ON LOWER(dc.currency) = fx.currency
+		GROUP BY 1,2,3
 	),
 	opex_agg AS (
 		SELECT
@@ -82,13 +76,10 @@ WITH
 			- SUM(o.dispensing_fees / fx.fx_to_usd) AS dispensing_fees,
 			- SUM(o.operating_expense / fx.fx_to_usd) AS operating_expense,
 			- SUM(o.staff_cost / fx.fx_to_usd) AS staff_cost
-		FROM
-			google_sheets.opex o
-			JOIN ref.fx_rates AS fx ON LOWER(o.currency) = fx.currency
-		GROUP BY
-			1,
-			2,
-			3
+		FROM google_sheets.opex o
+		JOIN ref.fx_rates AS fx 
+			ON LOWER(o.currency) = fx.currency
+		GROUP BY 1,2,3
 	),
 	sales_totals AS (
 		SELECT
@@ -96,21 +87,17 @@ WITH
 			country,
 			condition,
 			SUM(amount) AS total_amount
-		FROM
-			sales_agg
-		GROUP BY
-			1,
-			2,
-			3
+		FROM sales_agg
+		GROUP BY 1,2,3
 	),
 	sales_with_share AS (
 		SELECT
 			s.*,
 			st.total_amount,
 			SAFE_DIVIDE(s.amount, st.total_amount) AS channel_share
-		FROM
-			sales_agg s
-			LEFT JOIN sales_totals st ON s.date = st.date
+		FROM sales_agg AS s
+		LEFT JOIN sales_totals AS st 
+			ON s.date = st.date
 			AND s.country = st.country
 			AND s.condition = st.condition
 	),
@@ -119,29 +106,31 @@ WITH
 			DATE,
 			country,
 			condition
-		FROM
-			sales_agg
+		FROM sales_agg
+		
 		UNION DISTINCT
+		
 		SELECT DISTINCT
 			DATE,
 			country,
 			condition
-		FROM
-			marketing_agg
+		FROM marketing_agg
+		
 		UNION DISTINCT
+		
 		SELECT DISTINCT
 			DATE,
 			country,
 			condition
-		FROM
-			delivery_agg
+		FROM delivery_agg
+		
 		UNION DISTINCT
+		
 		SELECT DISTINCT
 			DATE,
 			country,
 			condition
-		FROM
-			opex_agg
+		FROM opex_agg
 	),
 	-- ==================================================
 	-- CTE: Base table with all calculated building blocks
@@ -175,18 +164,21 @@ WITH
 			COALESCE(o.dispensing_fees, 0) * COALESCE(sws.channel_share, 1) AS dispensing_fees,
 			COALESCE(o.operating_expense, 0) * COALESCE(sws.channel_share, 1) AS operating_expense,
 			COALESCE(o.staff_cost, 0) * COALESCE(sws.channel_share, 1) AS staff_cost
-		FROM
-			all_keys AS k
-			LEFT JOIN sales_with_share AS sws ON k.date = sws.date
+		FROM all_keys AS k
+		LEFT JOIN sales_with_share AS sws 
+			ON k.date = sws.date
 			AND k.country = sws.country
 			AND k.condition = sws.condition
-			LEFT JOIN marketing_agg AS m ON k.date = m.date
+		LEFT JOIN marketing_agg AS m 
+			ON k.date = m.date
 			AND k.country = m.country
 			AND k.condition = m.condition
-			LEFT JOIN delivery_agg AS d ON k.date = d.date
+		LEFT JOIN delivery_agg AS d 
+			ON k.date = d.date
 			AND k.country = d.country
 			AND k.condition = d.condition
-			LEFT JOIN opex_agg AS o ON k.date = o.date
+		LEFT JOIN opex_agg AS o 
+			ON k.date = o.date
 			AND k.country = o.country
 			AND k.condition = o.condition
 	)
@@ -201,5 +193,4 @@ SELECT
 	amount - refunds - tax_paid_usd - cogs - dispensing_fees - packaging - delivery_cost - gateway_fees AS cm2,
 	amount - refunds - tax_paid_usd - cogs - dispensing_fees - packaging - delivery_cost - gateway_fees - marketing_cost AS cm3,
 	amount - refunds - tax_paid_usd - cogs - dispensing_fees - packaging - delivery_cost - gateway_fees - marketing_cost - operating_expense - staff_cost AS ebitda
-FROM
-	base;
+FROM base;
