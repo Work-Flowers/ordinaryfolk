@@ -32,10 +32,10 @@ WITH
 			condition,
 			sales_channel,
 			currency,
-			ANY_VALUE(billing_reason) AS billing_reason,
-			ANY_VALUE(purchase_type) AS purchase_type,
-			ANY_VALUE(new_existing) AS new_existing,
-			ANY_VALUE(customer_id) AS customer_id,
+			billing_reason AS billing_reason,
+			purchase_type AS purchase_type,
+			new_existing AS new_existing,
+			customer_id AS customer_id,
 			SUM(amount) AS amount,
 			SUM(COALESCE(cogs, 0) * (1 - SAFE_DIVIDE(amount_refunded_usd, amount))) AS cogs,
 			SUM(packaging) AS packaging,
@@ -45,7 +45,7 @@ WITH
 			SUM(amount_refunded_usd) AS refunds,
 			COUNT(DISTINCT charge_id) AS n_orders
 		FROM raw_data
-		GROUP BY 1,2,3,4,5
+		GROUP BY 1,2,3,4,5,6,7,8,9
 	),
 	marketing_agg AS (
 		SELECT
