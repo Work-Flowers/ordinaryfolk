@@ -15,7 +15,8 @@ SELECT
 	LOWER(a.currency) AS currency,
 	a.quantity,
 	a.product_id,
-	a.purchase_amount
+	a.purchase_amount,
+	0 AS payment_gateway_fees
 FROM google_sheets.cod_hk_revenue_pre_2025 AS a
 
 UNION ALL
@@ -26,7 +27,8 @@ SELECT
 	'hkd' AS currency,
 	li.quantity,
 	pc.id AS product_id,
-	li.revenue AS purchase_amount
+	li.revenue AS purchase_amount,
+	aw.fu_wu_fei_service_charge * li.revenue / SUM(li.revenue) OVER(PARTITION BY aw.yun_dan_bian_hao_awb_no_) AS payment_gateway_fees
 FROM google_sheets.sf_express_airway_bills AS aw
 LEFT JOIN google_sheets.sf_express_line_items AS li
 	ON aw.yun_dan_bian_hao_awb_no_ = li.yun_dan_bian_hao_awb_no_
