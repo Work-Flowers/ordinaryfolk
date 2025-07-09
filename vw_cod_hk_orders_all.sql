@@ -2,11 +2,12 @@ DROP VIEW IF EXISTS finance_metrics.cod_hk_orders_all;
 CREATE VIEW finance_metrics.cod_hk_orders_all AS 
 
 WITH hk_skus AS (
-	SELECT DISTINCT
+	SELECT
 		sku,
-		id
+		id,
+		effective_from AS from_date,
+		COALESCE(LEAD(effective_from, 1) OVER (PARTITION BY id ORDER BY effective_from) - 1, '9999-12-31') AS to_date
 	FROM google_sheets.hk_product_cost_stripe
-	
 )
 
 SELECT
