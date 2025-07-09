@@ -312,7 +312,7 @@ hk_cod_data AS (
 		c.cost_box / fx.fx_to_usd AS cogs,
 		.02 AS cashback,
 		t.rate AS gst_vat,
-		0 AS fee_rate,
+		SAFE_DIVIDE(o.payment_gateway_fees, o.purchase_amount) AS fee_rate,
 		c.packaging_cost / fx.fx_to_usd AS packaging,
 		MIN(o.date) OVER(PARTITION BY o.email) AS acquisition_date
 	FROM finance_metrics.cod_hk_orders_all AS o
