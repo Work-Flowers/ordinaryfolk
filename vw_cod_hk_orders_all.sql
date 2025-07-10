@@ -34,4 +34,5 @@ FROM google_sheets.sf_express_airway_bills AS aw
 LEFT JOIN google_sheets.sf_express_line_items AS li
 	ON aw.yun_dan_bian_hao_awb_no_ = li.yun_dan_bian_hao_awb_no_
 LEFT JOIN hk_skus AS pc
-	ON LOWER(li.sku) = LOWER(pc.sku);
+	ON LOWER(li.sku) = LOWER(pc.sku)
+	AND aw.pai_jian_ri_qi_delivery_date BETWEEN pc.from_date AND pc.to_date;
