@@ -91,7 +91,12 @@ SELECT
 	d.campaign_name,
 	ccm.condition,
 	a.currency AS currency_code,
-    REGEXP_REPLACE(ash.targeting_geo_locations_countries, r'[\[\]"]', '') AS country_code,
+    COALESCE(
+    	REGEXP_REPLACE(ash.targeting_geo_locations_countries, r'[\[\]"]', ''),
+    	JSON_VALUE(ash.targeting_geo_locations_cities, '$[0].country'),
+    	JSON_VALUE(ash.targeting_geo_locations_regions, '$[0].country'),
+    	JSON_VALUE(ash.targeting_geo_locations_custom_locations, '$[0].country')
+    ) AS country_code,
 	SUM(d.reach) AS reach,
 	SUM(d.ctr * d.impressions / 100) AS clicks,
 	SUM(d.impressions) AS impressions,
