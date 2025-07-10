@@ -43,8 +43,9 @@ source_staff AS (
 source_revenue AS (
   SELECT
     DATE_TRUNC(purchase_date, MONTH) AS date,
-    ROUND(SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd)), 2) AS revenue_source_total
-  FROM finance_metrics.contribution_margin
+    ROUND(SUM(COALESCE(line_item_amount_usd, total_charge_amount_usd)), 2) AS revenue_source_total,
+    ROUND(SUM(cm.fee_rate * COALESCE(line_item_amount_usd, total_charge_amount_usd)),2) AS gateway_fees_total
+  FROM finance_metrics.contribution_margin AS cm
   GROUP BY 1
 ),
 
@@ -58,6 +59,7 @@ view_totals AS (
     ROUND(SUM(operating_expense),2) AS operating_view_total,
     ROUND(SUM(staff_cost),2) AS staff_view_total,
     ROUND(SUM(gross_revenue),2) AS revenue_view_total
+    ROUND(SUM(gateway_fees),2) AS gateway_fees_total
   FROM finance_metrics.monthly_contribution_margin
   GROUP BY 1
 )
@@ -68,6 +70,10 @@ SELECT
   -- REVENUE
   ROUND(sr.revenue_source_total - vt.revenue_view_total, 2) AS revenue_difference,
   ROUND(SAFE_DIVIDE(sr.revenue_source_total, vt.revenue_view_total) - 1, 4) AS revenue_pct_difference,
+
+-- GATEWAY FEES
+  ROUND(sr.gateway_fees_total - vt.gateway_fees_total, 2) AS gateway_fees_difference,
+  ROUND(SAFE_DIVIDE(sr.gateway_fees_total, vt.gateway_fees_total) - 1, 4) AS revenue_pct_difference,
 
   -- MARKETING
   ROUND(vm.marketing_source_total - vt.marketing_view_total, 2) AS marketing_difference,
