@@ -4,6 +4,7 @@ CREATE VIEW finance_metrics.monthly_contribution_margin AS
 WITH sales_base AS (
 	SELECT
 		LOWER(region) AS country,
+		purchase_date AS exact_date,
 		DATE_TRUNC(purchase_date, MONTH) AS date,
 		condition,
 		COALESCE(line_item_amount_usd, total_charge_amount_usd) AS amount,
@@ -27,6 +28,7 @@ blocks AS (
   -- SALES BLOCK
  	SELECT
 		'sales' AS source,
+		exact_date,
 		date,
 		country,
 		condition,
@@ -50,13 +52,14 @@ blocks AS (
 	    0.0 AS operating_expense,
 	    0.0 AS staff_cost
 	FROM sales_base
-	GROUP BY 1,2,3,4,5,6,7,8,9,10
+	GROUP BY 1,2,3,4,5,6,7,8,9,10,11
     
     UNION ALL
 
       -- MARKETING BLOCK
     SELECT
         'marketing' AS source,
+        date AS exact_date,
         DATE_TRUNC(date, MONTH) AS date,
         LOWER(country_code) AS country,
         condition,
@@ -80,13 +83,14 @@ blocks AS (
         0.0 AS operating_expense,
         0.0 AS staff_cost
     FROM cac.marketing_spend
-    GROUP BY 1,2,3,4
+    GROUP BY 1,2,3,4,5
 
     UNION ALL
 
     -- DELIVERY BLOCK
     SELECT
         'delivery' AS source,
+        dc.date AS exact_date,
         DATE_TRUNC(dc.date, MONTH) AS date,
         LOWER(dc.country) AS country,
         CAST(NULL AS STRING) AS condition,
@@ -111,13 +115,14 @@ blocks AS (
         0.0 AS staff_cost
     FROM google_sheets.delivery_cost dc
     JOIN ref.fx_rates AS fx ON LOWER(dc.currency) = fx.currency
-    GROUP BY 1,2,3,4
+    GROUP BY 1,2,3,4,5
 
     UNION ALL
 
     -- OPEX BLOCK
     SELECT
         'opex' AS source,
+        o.date AS exact_date,
         DATE_TRUNC(o.date, MONTH) AS date,
         LOWER(o.country) AS country,
         CAST(NULL AS STRING) AS condition,
@@ -142,12 +147,13 @@ blocks AS (
         -SUM(o.staff_cost / fx.fx_to_usd) AS staff_cost
     FROM google_sheets.opex o
     JOIN ref.fx_rates AS fx ON LOWER(o.currency) = fx.currency
-    GROUP BY 1,2,3
+    GROUP BY 1,2,3,4
     
     UNION ALL
     -- TELECONSULTATION FEES AS COGS BLOCK
 	SELECT
 	  'teleconsult_cogs' AS source,
+	  o.date AS exact_date,
 	  DATE_TRUNC(o.date, MONTH) AS date,
 	  LOWER(o.country) AS country,
 	  'Services' AS condition,  -- explicitly assign the condition!
@@ -173,7 +179,7 @@ blocks AS (
 	FROM google_sheets.opex o
 	JOIN ref.fx_rates AS fx 
 		ON LOWER(o.currency) = fx.currency
-	GROUP BY 1,2,3,4
+	GROUP BY 1,2,3,4,5
 )
 
 SELECT
