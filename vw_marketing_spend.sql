@@ -12,10 +12,12 @@ WITH ga_targeting AS (
 	QUALIFY ROW_NUMBER() OVER (PARTITION BY campaign_id ORDER BY updated_at DESC) = 1
 ),
 
+
 ga_account_currency AS (
 	SELECT
 		id AS account_id,
-		currency_code
+		currency_code,
+		SPLIT(descriptive_name, ' ')[OFFSET(0)] AS brand
 	FROM google_ads.account_history
 	QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY updated_at DESC) = 1
 ),
@@ -23,7 +25,8 @@ ga_account_currency AS (
 fb_account_currency AS (
 	SELECT
 		CAST(id AS STRING) AS account_id,
-		currency
+		currency,
+		SPLIT(name, ' ')[OFFSET(0)] AS brand
     FROM facebook_ads.account_history
 	QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY created_time DESC) = 1
 ),
@@ -57,6 +60,7 @@ google_ad_history AS (
 
 SELECT
 	'google_ads' AS channel,
+	a.brand,
 	s.date,
 	google_campaigns.name AS campaign_name,
 	ccm.condition,
@@ -81,12 +85,13 @@ LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(a.currency_code) = fx.currency
 LEFT JOIN google_sheets.campaign_condition_map AS ccm
 	ON google_campaigns.name = ccm.campaign_name
-GROUP BY 1,2,3,4,5,6,7
+GROUP BY 1,2,3,4,5,6,7,8
 
 UNION ALL
 
 SELECT
 	'facebook_ads' AS channel,
+	a.brand,
 	d.date,
 	d.campaign_name,
 	ccm.condition,
@@ -115,12 +120,13 @@ LEFT JOIN google_sheets.campaign_condition_map AS ccm
 	ON d.campaign_name = ccm.campaign_name
 WHERE
     (d.reach > 0 OR d.ctr > 0 or d.spend > 0)
-GROUP BY 1,2,3,4,5,6
+GROUP BY 1,2,3,4,5,6,7
 
 UNION ALL
 
 SELECT
 	'taboola' AS channel,
+	'Noah' AS brand, -- Sean mentioned that Taboola spend is all for Noah
 	plat.date,
 	tc.name AS campaign_name,
 	ccm.condition,
@@ -140,12 +146,13 @@ LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(plat.currency) = LOWER(fx.currency)
 LEFT JOIN google_sheets.campaign_condition_map AS ccm
 	ON tc.name = ccm.campaign_name
-GROUP BY 1,2,3,4,5,6
+GROUP BY 1,2,3,4,5,6,7
 
 UNION ALL
 
 SELECT
 	man.supplier AS channel,
+	'N/A - Manual Ad Spend' AS brand,
 	man.date,
 	CAST(NULL AS STRING) AS campaign_name,
 	man.condition, 
@@ -159,4 +166,4 @@ SELECT
 FROM google_sheets.manual_ad_spend AS man
 LEFT JOIN ref.fx_rates AS fx
 	ON LOWER(man.currency) = fx.currency
-GROUP BY 1,2,3,4,5,6,7,8,9
+GROUP BY 1,2,3,4,5,6,7,8,9,7,8
